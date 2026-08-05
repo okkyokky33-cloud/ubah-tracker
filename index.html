@@ -1,0 +1,3322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UBAHdigital Tracker</title>
+<link rel="icon" href="data:,">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<style>
+  :root{
+    /* Netral sejuk — bukan krem, supaya tidak bentrok dengan ungu brand */
+    --bg:#F6F6F9; --surface:#FFFFFF; --line:#E8E8EE; --line-soft:#F0F0F4;
+    --ink:#1E1B2E; --ink-2:#5A5670; --ink-3:#8B8798;
+    --navy:#1E1B2E; --grey:#8B8798; --offwhite:#FAFAFC; --white:#FFFFFF;
+    /* Brand tetap, tapi turun pangkat jadi aksen */
+    --brand:#6B2FB5; --brand-2:#9A2D71; --brand-deep:#6B2FB5; --gold:#9A2D71;
+    --brand-gradient:linear-gradient(120deg,#8B2A85 0%,#6B2FB5 100%);
+    /* Semantik diredam: masih terbaca, tidak menyilaukan */
+    --late:#A82C56; --late-bg:#FCEFF3;
+    --soon:#8A6410; --soon-bg:#FBF3E2;
+    --ok:#1D6B4C;   --ok-bg:#E9F3ED;
+    --calm:#5A5670; --calm-bg:#F1F1F5;
+    --post:#5B3FA8; --post-bg:#EFEBFA;
+    --red:#A82C56;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;}
+  .app{max-width:1000px;margin:0 auto;padding-bottom:70px;}
+
+  .topbar{background:var(--brand-gradient);color:#fff;padding:14px 18px 16px;position:sticky;top:0;z-index:20;}
+  .topbar h1{margin:1px 0 0;font-size:19px;font-weight:680;letter-spacing:-.3px;}
+  .topbar .tag{font-size:9.5px;letter-spacing:1.4px;font-weight:700;opacity:.72;}
+  .logout-btn{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);color:#fff;
+    border-radius:8px;padding:5px 10px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;}
+  .role-pill{display:inline-block;background:rgba(255,255,255,.95);color:var(--brand);font-size:9px;
+    font-weight:800;padding:2px 8px;border-radius:999px;margin-left:7px;letter-spacing:.7px;vertical-align:middle;}
+
+  .tabs{display:flex;gap:6px;padding:12px 14px 2px;overflow-x:auto;background:var(--bg);}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex:0 0 auto;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
+    color:var(--ink-2);font:inherit;font-size:12.5px;font-weight:560;cursor:pointer;white-space:nowrap;}
+  .tab.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .tab:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+
+  .content{padding:12px 14px 0;}
+
+  .card{background:var(--surface);border-radius:14px;padding:14px;margin-bottom:10px;position:relative;overflow:hidden;
+    box-shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.05);}
+  /* Tulang punggung kiri = urgensi. Kartu tenang tidak berwarna sama sekali. */
+  .card.sp-late::before,.card.sp-soon::before,.card.sp-post::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;}
+  .card.sp-late::before{background:var(--late);}
+  .card.sp-soon::before{background:var(--soon);}
+  .card.sp-post::before{background:var(--post);}
+  .card-btn{display:block;width:100%;text-align:left;border:none;font-family:inherit;color:inherit;cursor:pointer;}
+  .card-btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin-bottom:14px;}
+  .kpi{background:var(--surface);border-radius:13px;padding:12px 13px 11px;position:relative;overflow:hidden;
+    box-shadow:0 1px 2px rgba(16,24,40,.04);border:none;font:inherit;color:inherit;text-align:left;width:100%;cursor:pointer;display:block;}
+  .kpi::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--ink);}
+  .kpi.k-late::before{background:var(--late);}
+  .kpi.k-soon::before{background:var(--soon);}
+  .kpi.k-brand::before{background:var(--brand);}
+  .kpi.k-ok::before{background:var(--ok);}
+  .kpi .num{font-size:29px;font-weight:660;letter-spacing:-1.2px;font-variant-numeric:tabular-nums;line-height:1.05;}
+  .kpi .lbl{font-size:10px;font-weight:640;letter-spacing:.7px;color:var(--ink-3);text-transform:uppercase;margin-top:2px;}
+
+  .section-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--ink-3);margin:0 0 8px;}
+
+  .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:10.5px;
+    font-weight:640;letter-spacing:.2px;white-space:nowrap;}
+  .badge-red{background:var(--late-bg);color:var(--late);}
+  .badge-yellow{background:var(--soon-bg);color:var(--soon);}
+  .badge-green{background:var(--ok-bg);color:var(--ok);}
+  .badge-grey{background:var(--calm-bg);color:var(--calm);}
+  .badge-purple{background:var(--post-bg);color:var(--post);}
+
+  .btn{background:var(--ink);color:#fff;border:none;border-radius:10px;padding:9px 15px;font:inherit;
+    font-size:12.5px;font-weight:620;cursor:pointer;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-gold{background:var(--brand);color:#fff;}
+  .btn-outline{background:var(--surface);color:var(--ink-2);border:1px solid var(--line);}
+  .btn-sm{padding:6px 12px;font-size:11.5px;border-radius:8px;}
+  .fab{position:fixed;bottom:22px;right:22px;background:var(--brand);color:#fff;border:none;width:54px;height:54px;
+    border-radius:27px;font-size:26px;box-shadow:0 6px 18px rgba(107,47,181,.35);cursor:pointer;z-index:15;}
+
+  .modal-bg{position:fixed;inset:0;background:rgba(30,27,46,.42);display:flex;align-items:flex-end;justify-content:center;z-index:30;}
+  .modal{background:var(--surface);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:20px;}
+  @media(min-width:640px){.modal-bg{align-items:center;}.modal{border-radius:18px;}}
+
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:11.5px;font-weight:620;color:var(--ink-2);margin-bottom:5px;}
+  .field input,.field select,.field textarea{width:100%;padding:10px 11px;border:1px solid var(--line);
+    border-radius:10px;font:inherit;font-size:14px;background:var(--surface);color:var(--ink);}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:2px solid var(--brand);outline-offset:-1px;border-color:transparent;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .modal-actions{display:flex;gap:10px;margin-top:16px;}
+  .modal-actions .btn{flex:1;}
+  .empty{text-align:center;padding:38px 20px;color:var(--ink-3);font-size:13.5px;}
+  .locked-note{font-size:11.5px;color:var(--ink-3);line-height:1.55;margin:5px 0 10px;}
+  .add-row{display:flex;gap:8px;margin-top:12px;}
+  .add-row input{flex:1;padding:10px 11px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:14px;}
+  .manage-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;
+    border-bottom:1px solid var(--line-soft);font-size:13.5px;gap:8px;}
+  .manage-row:last-child{border-bottom:none;}
+
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+  .cal-head{font-size:9.5px;font-weight:700;letter-spacing:.5px;color:var(--ink-3);text-align:center;padding:4px 0;text-transform:uppercase;}
+  .cal-cell{background:var(--surface);border-radius:9px;min-height:76px;padding:5px;font-size:10px;border:1px solid var(--line-soft);}
+  .cal-cell.dim{opacity:.35;}
+  .cal-cell.holiday{background:var(--late-bg);border-color:transparent;}
+  .cal-cell.today{border:1.5px solid var(--brand);}
+  .cal-date{font-weight:700;font-size:11.5px;margin-bottom:3px;font-variant-numeric:tabular-nums;}
+  .cal-count{background:var(--ink);color:#fff;border-radius:6px;padding:3px 5px;font-size:9.5px;font-weight:700;
+    text-align:center;cursor:pointer;margin-top:2px;border:none;width:100%;font-family:inherit;}
+  .cal-event{background:var(--calm-bg);color:var(--calm);border-radius:5px;padding:2px 4px;margin-bottom:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;border:none;width:100%;
+    text-align:left;font-family:inherit;font-size:9.5px;font-weight:560;}
+  .cal-event.billing{background:var(--ok-bg);color:var(--ok);}
+  .cal-event.post{background:var(--post-bg);color:var(--post);font-weight:640;}
+  .cal-holname{color:var(--late);font-weight:700;font-size:8.5px;margin-bottom:2px;}
+  .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .month-nav button{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:9px;
+    width:34px;height:34px;font-size:16px;cursor:pointer;}
+  .month-nav .label{font-size:16px;font-weight:640;letter-spacing:-.2px;}
+
+  .filter-row{display:flex;gap:8px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px;}
+  .filter-row select,.filter-row input{padding:8px 10px;border-radius:10px;border:1px solid var(--line);
+    font:inherit;font-size:12.5px;background:var(--surface);color:var(--ink);}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .chip{padding:6px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
+    font:inherit;font-size:12px;font-weight:600;color:var(--ink-2);cursor:pointer;white-space:nowrap;}
+  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--ink-3);margin-top:12px;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .dot{width:9px;height:9px;border-radius:3px;display:inline-block;}
+  .conn-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px;}
+
+  .setup-box{background:#FFF9E8;border:1px solid #EBD9A0;border-radius:14px;padding:16px;margin:16px;
+    font-size:13px;line-height:1.6;color:#6B5410;}
+  .setup-box code{background:rgba(0,0,0,.06);padding:2px 6px;border-radius:5px;font-size:12px;}
+  .warn-box{background:#FFF9E8;border:1px solid #EBD9A0;border-radius:12px;padding:12px;font-size:12.5px;
+    margin-bottom:12px;line-height:1.6;color:#6B5410;}
+  .pending-box{background:#FFF9E8;border:1px solid #EBD9A0;}
+
+  .login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:var(--brand-gradient);padding:20px;}
+  .login-logo{width:132px;margin-bottom:26px;}
+  .login-card{background:var(--surface);border-radius:18px;padding:26px 22px;width:100%;max-width:360px;
+    box-shadow:0 10px 40px rgba(30,27,46,.18);}
+  .login-card h2{margin:0 0 3px;font-size:20px;font-weight:660;letter-spacing:-.3px;}
+  .login-card .sub{color:var(--ink-3);font-size:12.5px;margin-bottom:18px;}
+  .login-error{background:var(--late-bg);color:var(--late);padding:9px 11px;border-radius:10px;font-size:12.5px;margin-bottom:12px;}
+
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:60;padding:11px 16px;
+    border-radius:12px;font-size:13px;font-weight:600;color:#fff;max-width:92vw;box-shadow:0 8px 24px rgba(30,27,46,.28);}
+  .toast.ok{background:var(--ok);} .toast.err{background:var(--late);}
+
+  .agenda-day{margin-bottom:6px;}
+  .agenda-date{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--brand);
+    padding:6px 0 7px;border-bottom:1px solid var(--line);margin:14px 0 9px;}
+  .agenda-date.hol{color:var(--late);}
+  .stack{background:var(--offwhite);border:1px solid var(--line-soft);border-radius:12px;padding:12px;margin-bottom:10px;}
+  .eyebrow{font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--post);margin-bottom:4px;}
+  .client-line{font-size:10.5px;font-weight:700;letter-spacing:.5px;color:var(--brand-2);text-transform:uppercase;}
+  .task-title{font-size:14.5px;font-weight:600;letter-spacing:-.15px;margin:4px 0 3px;}
+  .meta-line{font-size:12px;color:var(--ink-3);}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
+
+/* ===================== CONFIG ===================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAp3pc0-U1bSbB1pWtDTNIBjGI8Emq9Uys",
+  authDomain: "ubah-project-tracker.firebaseapp.com",
+  projectId: "ubah-project-tracker",
+  storageBucket: "ubah-project-tracker.firebasestorage.app",
+  messagingSenderId: "255038719115",
+  appId: "1:255038719115:web:31d4d2ed0192d96bd8808e",
+};
+const COLLECTION = "ubah_tracker_tasks";
+const STAFF_COLLECTION = "ubah_tracker_staff";
+const PROJECTS_COLLECTION = "ubah_tracker_projects";
+const DOCUMENTS_COLLECTION = "ubah_tracker_documents";
+const DAILY_LOG_COLLECTION = "ubah_tracker_daily_log";
+const HOLIDAYS_COLLECTION = "ubah_tracker_holidays";
+// Gambar disimpan di dokumen terpisah, bukan di dalam task — supaya tidak ikut terunduh
+// setiap kali aplikasi dibuka. Hanya diambil saat modal task benar-benar dibuka.
+const IMAGES_COLLECTION = "ubah_tracker_images";
+const MAX_IMG_WIDTH = 900;
+const IMG_QUALITY = 0.55;
+const MAX_IMG_BYTES = 140 * 1024;   // batas per gambar setelah dikompres
+const MAX_IMG_COUNT = 4;
+
+const DOCUMENT_TYPES = ["Report","Company Profile","Kontrak","Ideation","Lainnya"];
+const DOC_TASK_CATEGORIES = ["Strategy","Website","Content Brief","Report"];
+
+// Admin dikenali dari email. admin@ubahdigital.app tetap disimpan sebagai
+// jalan cadangan sampai akun Gmail terbukti bisa masuk.
+const ADMIN_EMAILS = [
+  "admin@ubahdigital.app",
+  "okkyokky33@gmail.com",
+  "assanuraga@gmail.com",
+];
+
+/* ===================== ROLE ===================== */
+const ROLES = {
+  pm:               "Project Manager",
+  strategist:       "Content Strategist",
+  planner:          "Content Planner",
+  video_editor:     "Video Editor",
+  graphic_designer: "Graphic Designer",
+  operations:       "Operations",
+};
+// Kategori yang boleh dibuat tiap role. Role yang tidak terdaftar = bebas semua.
+const ROLE_CATEGORIES = {
+  planner:          ["Content Brief"],
+  video_editor:     ["Video Editing"],
+  graphic_designer: ["Graphic Design"],
+  operations:       ["Paid Ads","Report"],
+};
+// Role yang wajar mengerjakan tiap kategori. Dipakai menyaring pilihan PIC
+// supaya Operations tidak bisa kepilih jadi PIC file video.
+const CATEGORY_ROLES = {
+  "Video Editing":          ["video_editor"],
+  "Graphic Design":         ["graphic_designer"],
+  "Moodboard & Storyboard": ["graphic_designer"],
+  "Content Brief":          ["planner","strategist"],
+  "Paid Ads":               ["operations"],
+  "Report":                 ["operations"],
+  "Strategy":               ["pm","strategist"],
+  "Production":             ["video_editor","graphic_designer","pm"],
+};
+const APPROVER_ROLES   = ["pm","strategist"];
+const DOCS_ROLES       = ["pm","strategist","operations"];
+const POSTING_ROLES    = ["pm","strategist","operations"];
+const WORKLOAD_ROLES   = ["pm","strategist"];
+
+const DEFAULT_PROJECTS = ["N Beauty","Nuris","Nirwana Hill","PNR","Solid Gradino","UBAHdigital","UBAHproperty","Xvantages","Other"];
+
+const CATEGORIES = ["Strategy","Video Editing","Graphic Design","Moodboard & Storyboard","Paid Ads","Production","Website","Content Brief","Billing","Report","Meeting","Other"];
+const PRIORITIES = ["High","Medium","Low"];
+const STATUSES = ["Not Started","In Progress","Waiting Review","Revision","Approved","Menunggu Approval Klien","Ready to Post","On Hold","Done"];
+
+// Kategori yang lewat alur review (Waiting Review -> Approved/Revision) sebelum Done.
+// Production sengaja TIDAK masuk sini — itu jadwal shooting, bukan file yang direview.
+const REVIEW_CATEGORIES = ["Video Editing","Graphic Design","Moodboard & Storyboard","Website","Content Brief","Strategy","Report"];
+// Kategori yang wajib lewat gerbang konfirmasi klien setelah approve internal.
+const CLIENT_GATE_CATEGORIES = ["Video Editing","Graphic Design","Moodboard & Storyboard","Website"];
+// Kategori yang outputnya bisa tayang di sosmed (lewat Caption -> Ready to Post -> Done).
+const ALWAYS_POSTABLE = ["Video Editing"];
+
+// Satu konten sering butuh lebih dari satu orang. Reels = file video (editor) + cover (designer).
+// Standarnya sengaja dibuat lengkap: kalau PM lupa, yang terjadi kelebihan baris (kelihatan),
+// bukan kekurangan baris (baru ketahuan pas mau review).
+const DELIVERABLE_PRESETS = {
+  "Video Editing":          [["File video","video_editor"],["Cover reels","graphic_designer"]],
+  "Graphic Design":         [["File desain","graphic_designer"]],
+  "Moodboard & Storyboard": [["Moodboard / storyboard","graphic_designer"]],
+  "Website":                [["Link website",""]],
+  "Content Brief":          [["Dokumen brief",""]],
+  "Strategy":               [["Dokumen strategy",""]],
+  "Report":                 [["Dokumen report",""]],
+};
+const AD_PLATFORMS = ["Instagram Ads","Facebook Ads","Google Ads","TikTok Ads","LinkedIn Ads"];
+const AD_OBJECTIVES = {
+  "Instagram Ads": ["Traffic (ke Website/Profil)","Konversi ke Website (Sales/Purchase)","Lead Form (Instant Form)","Lead Messaging (WhatsApp/DM/Messenger)","Engagement (Interaksi Postingan)","ThruPlay (Video Views)","Awareness (Kesadaran Merek/Jangkauan)","App Promotion","Katalog/Penjualan Produk"],
+  "Facebook Ads": ["Traffic (ke Website/Profil)","Konversi ke Website (Sales/Purchase)","Lead Form (Instant Form)","Lead Messaging (WhatsApp/DM/Messenger)","Engagement (Interaksi Postingan)","ThruPlay (Video Views)","Awareness (Kesadaran Merek/Jangkauan)","App Promotion","Katalog/Penjualan Produk"],
+  "Google Ads": ["Penjualan (Sales)","Prospek (Leads)","Traffic Website","Kesadaran & Jangkauan (Awareness/Reach)","Promosi Aplikasi","Kunjungan Toko Lokal","Tanpa Goal Spesifik"],
+  "TikTok Ads": ["Traffic","Video Views","Community Interaction (Engagement)","Lead Generation","Product Sales / Website Conversion","App Promotion","Reach / Brand Consideration"],
+  "LinkedIn Ads": ["Brand Awareness","Website Visits","Engagement","Video Views","Lead Generation","Website Conversions","Job Applicants","Messaging Ads"],
+};
+
+// Dipakai HANYA sebagai isian awal kalau daftar hari libur di Firestore masih kosong.
+// Setelah diisi, admin yang pegang kendali lewat tab Kelola — jadi 2027 dst tidak mati sendiri.
+const HOLIDAY_SEED_2026 = [
+  ["2026-01-01","Tahun Baru Masehi"],["2026-01-16","Isra Miraj Nabi Muhammad SAW"],
+  ["2026-02-16","Cuti Bersama Imlek"],["2026-02-17","Tahun Baru Imlek 2577"],
+  ["2026-03-18","Cuti Bersama Nyepi"],["2026-03-19","Hari Raya Nyepi"],
+  ["2026-03-20","Cuti Bersama Idul Fitri"],["2026-03-21","Hari Raya Idul Fitri"],
+  ["2026-03-22","Hari Raya Idul Fitri"],["2026-03-23","Cuti Bersama Idul Fitri"],
+  ["2026-03-24","Cuti Bersama Idul Fitri"],["2026-04-03","Wafat Isa Almasih"],
+  ["2026-04-05","Paskah"],["2026-05-01","Hari Buruh Internasional"],
+  ["2026-05-14","Kenaikan Isa Almasih"],["2026-05-15","Cuti Bersama Kenaikan Isa Almasih"],
+  ["2026-05-27","Hari Raya Idul Adha"],["2026-05-28","Cuti Bersama Idul Adha"],
+  ["2026-05-31","Hari Raya Waisak"],["2026-06-01","Hari Lahir Pancasila"],
+  ["2026-06-16","Tahun Baru Islam 1448 H"],["2026-08-17","Hari Kemerdekaan RI"],
+  ["2026-08-25","Maulid Nabi Muhammad SAW"],["2026-12-24","Cuti Bersama Natal"],
+  ["2026-12-25","Hari Raya Natal"],
+];
+
+/* ===================== HELPERS ===================== */
+function isReviewCategory(cat){ return REVIEW_CATEGORIES.includes(cat); }
+function toLocalISO(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+}
+function todayStr(){ return toLocalISO(new Date()); }
+function fmtDate(s){ if(!s) return "-"; const d=new Date(s+"T00:00:00"); return d.toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"2-digit"}); }
+// Pakai UTC supaya selisih hari tidak bergeser kalau zona waktu perangkat berubah.
+function daysBetween(a,b){
+  const pa = a.split("-").map(Number), pb = b.split("-").map(Number);
+  return Math.round((Date.UTC(pb[0],pb[1]-1,pb[2]) - Date.UTC(pa[0],pa[1]-1,pa[2]))/86400000);
+}
+
+// Tolak skema berbahaya (javascript:, data:) sebelum link dipasang ke href.
+const SAFE_PROTOCOLS = ["http:","https:"];
+function safeUrl(raw){
+  if(!raw) return null;
+  const s = String(raw).trim();
+  if(!s) return null;
+  try{
+    const u = new URL(s);
+    return SAFE_PROTOCOLS.includes(u.protocol) ? u.href : null;
+  }catch(e){
+    try{
+      const u2 = new URL("https://" + s);
+      return u2.hostname.includes(".") ? u2.href : null;
+    }catch(e2){ return null; }
+  }
+}
+function ExternalLink({href, children, style, onClick}){
+  const safe = safeUrl(href);
+  if(!safe) return <span style={{color:"var(--grey)",fontSize:12}}>{children} <i>(link tidak valid)</i></span>;
+  return <a href={safe} target="_blank" rel="noopener noreferrer" style={style} onClick={onClick}>{children}</a>;
+}
+
+function getFlag(task, today){
+  const ref = today || todayStr();
+  if(task.status === "Done") return {label:"Selesai", cls:"badge-green"};
+  if(!task.dueDate) return {label:"No Due Date", cls:"badge-grey"};
+  const diff = daysBetween(ref, task.dueDate);
+  if(diff < 0) return {label:"OVERDUE", cls:"badge-red"};
+  if(diff <= 2) return {label:"DUE SOON", cls:"badge-yellow"};
+  return {label:"On Track", cls:"badge-green"};
+}
+function eventDate(task){ return task.dueDate || task.startDate || null; }
+// Garis tepi kartu: hanya muncul kalau butuh perhatian.
+function spineCls(task, today){
+  if(task.status === "Done") return "";
+  const f = getFlag(task, today).label;
+  if(f === "OVERDUE") return " sp-late";
+  if(f === "DUE SOON") return " sp-soon";
+  return "";
+}
+// Badge urgensi disembunyikan kalau semuanya aman — supaya yang merah benar-benar menonjol.
+function urgencyBadge(task, today){
+  if(task.status === "Done") return null;
+  const f = getFlag(task, today);
+  if(f.label === "OVERDUE"){
+    const late = task.dueDate ? Math.abs(daysBetween(today, task.dueDate)) : 0;
+    return { label: late ? `Telat ${late} hari` : "Telat", cls: f.cls };
+  }
+  if(f.label === "DUE SOON"){
+    const d = daysBetween(today, task.dueDate);
+    return { label: d === 0 ? "Hari ini" : `${d} hari lagi`, cls: f.cls };
+  }
+  return null;
+}
+function priorityCls(p){ return p==="High" ? "badge-red" : p==="Medium" ? "badge-yellow" : "badge-grey"; }
+function statusCls(s){
+  if(s==="Revision") return "badge-red";
+  if(s==="Waiting Review") return "badge-yellow";
+  if(s==="Menunggu Approval Klien") return "badge-purple";
+  if(s==="Done"||s==="Approved") return "badge-green";
+  return "badge-grey";
+}
+
+const uid = () => (window.crypto && window.crypto.randomUUID)
+  ? window.crypto.randomUUID()
+  : "id" + Math.random().toString(36).slice(2) + Date.now();
+
+const emptySubtask = () => ({ _id: uid(), description:"", priority:"Medium", progress:0 });
+const emptyDeliverable = (label, role) => ({ _id: uid(), label: label||"", role: role||"", pic:"",
+  briefLink:"", driveFolder:"", link:"", state:"pending", note:"", at:"", by:"" });
+function presetDeliverables(category){
+  const preset = DELIVERABLE_PRESETS[category];
+  if(!preset) return [];
+  return preset.map(([label, role]) => emptyDeliverable(label, role));
+}
+const DELIV_STATE = {
+  pending:   { label:"Belum dikirim", cls:"badge-grey" },
+  submitted: { label:"Terkirim",      cls:"badge-green" },
+  revision:  { label:"Perlu revisi",  cls:"badge-red" },
+};
+// Semua orang yang terlibat: PIC task + PIC tiap kiriman.
+function taskPeople(t){
+  const set = new Set(t.pics || []);
+  (t.deliverables || []).forEach(d => { if(d.pic) set.add(d.pic); });
+  return [...set];
+}
+const emptyAdItem  = () => ({ _id: uid(), label:"", link:"", caption:"", proofLink:"", proofUploadedAt:"", proofUploadedBy:"" });
+const emptyTask = () => ({
+  client:"", category:"Video Editing", pics:[], status:"Not Started",
+  title:"", priority:"Medium", progress:0,
+  startDate:"", dueDate:"", notes:"", showOnCalendar:false,
+  subtasks:[emptySubtask()],
+  link:"", caption:"", previewLink:"", postingDate:"", livePostLink:"", postedAt:"", activity:[],
+  briefLink:"", driveFolder:"", forPosting:false, reviewerTarget:"",
+  deliverables: presetDeliverables("Video Editing"),
+  platform:"", objective:"", budget:"", adItems:[emptyAdItem()],
+  shootLocation:"", shootTime:"", equipment:"", crew:"",
+  version:0, internalApprovedBy:"", completedAt:"", createdAt:"",
+});
+
+// Backward-compat: dokumen lama pakai {pic, description} datar; yang baru {pics, subtasks}.
+function normalizeTask(t){
+  const pics = (Array.isArray(t.pics) ? t.pics : (t.pic ? [t.pic] : [])).filter(x => typeof x === "string" && x);
+  const rawSubs = Array.isArray(t.subtasks) && t.subtasks.length > 0
+    ? t.subtasks
+    : [{ description: t.description || "", priority: t.priority || "Medium", progress: t.progress || 0 }];
+  const subtasks = rawSubs.filter(Boolean).map(s => ({ _id: s._id || uid(), description:s.description||"",
+    priority:s.priority||"Medium", progress:Number(s.progress)||0 }));
+  const avgProgress = subtasks.length
+    ? Math.round(subtasks.reduce((s,x)=>s+x.progress,0) / subtasks.length)
+    : 0;
+  const anyHighPriority = subtasks.some(s=>s.priority==="High");
+  const overallPriority = anyHighPriority ? "High"
+    : subtasks.some(s=>s.priority==="Medium") ? "Medium" : "Low";
+  const rawAds = (Array.isArray(t.adItems) && t.adItems.length>0) ? t.adItems
+    : (t.link || t.caption || t.contentPromoted)
+      ? [{ label: t.contentPromoted||"", link: t.link||"", caption: t.caption||"" }]
+      : [emptyAdItem()];
+  const adItems = rawAds.filter(Boolean).map(a => ({ _id:a._id||uid(), label:a.label||"", link:a.link||"", caption:a.caption||"",
+    proofLink:a.proofLink||"", proofUploadedAt:a.proofUploadedAt||"", proofUploadedBy:a.proofUploadedBy||"" }));
+  let deliverables;
+  if(Array.isArray(t.deliverables) && t.deliverables.length){
+    deliverables = t.deliverables.filter(Boolean).map(d => ({ _id:d._id||uid(), label:d.label||"", role:d.role||"",
+      pic:d.pic||"", briefLink:d.briefLink||"", driveFolder:d.driveFolder||"",
+      link:d.link||"", state:d.state||(d.link?"submitted":"pending"),
+      note:d.note||"", at:d.at||"", by:d.by||"" }));
+  } else if(isReviewCategory(t.category)){
+    const preset = DELIVERABLE_PRESETS[t.category];
+    const label = preset ? preset[0][0] : "Hasil kerjaan";
+    const role  = preset ? preset[0][1] : "";
+    deliverables = [{ _id:uid(), label, role, pic:(pics[0]||""),
+      briefLink:t.briefLink||"", driveFolder:t.driveFolder||"", link:t.link||"",
+      state: t.link ? "submitted" : "pending", note:"", at:"", by:"" }];
+  } else {
+    deliverables = [];
+  }
+  // Judul pindah ke level assignment. Task lama mengambilnya dari sub-task pertama.
+  const title = (t.title || (subtasks[0] ? subtasks[0].description : "") || "").trim();
+  const priority = t.priority || overallPriority;
+  const progress = t.progress != null ? Number(t.progress)||0 : avgProgress;
+  return { ...t, pics, subtasks, avgProgress, anyHighPriority, overallPriority,
+    title, priority, progress, deliverables,
+    link: t.link || "", caption: t.caption || "",
+    previewLink: t.previewLink || "", postingDate: t.postingDate || "",
+    livePostLink: t.livePostLink || "",
+    briefLink: t.briefLink || "", driveFolder: t.driveFolder || "", forPosting: t.forPosting === true,
+    reviewerTarget: t.reviewerTarget || "",
+    postedAt: t.postedAt || "", activity: (Array.isArray(t.activity) ? t.activity : []).filter(Boolean),
+    platform: t.platform || "", objective: t.objective || "", budget: t.budget || "",
+    adItems,
+    shootLocation: t.shootLocation || "", shootTime: t.shootTime || "",
+    equipment: t.equipment || "", crew: t.crew || "",
+    version: Number(t.version)||0, internalApprovedBy: t.internalApprovedBy || "",
+    completedAt: t.completedAt || "", createdAt: t.createdAt || "" };
+}
+
+function taskTitle(t){
+  const fromSub = (t.subtasks && t.subtasks[0]) ? t.subtasks[0].description : "";
+  return t.title || fromSub || "-";
+}
+function calLabel(task){
+  if(task.category === "Billing") return task.client;
+  const people = taskPeople(task);
+  const picLabel = people.length > 1 ? `${people[0]} +${people.length-1}` : (people[0] || "?");
+  return `${picLabel}: ${taskTitle(task).slice(0,16)}`;
+}
+
+function newActivity(type, text, author){
+  return { type, text, author: author||"", at: new Date().toISOString() };
+}
+function needsClientGate(cat){ return CLIENT_GATE_CATEGORIES.includes(cat); }
+function isPostableTask(task){
+  if(!task) return false;
+  if(ALWAYS_POSTABLE.includes(task.category)) return true;
+  if(task.category === "Graphic Design") return task.forPosting === true;
+  return false;
+}
+
+// Tanggal 31 di bulan Februari harus dijepit ke hari terakhir bulan itu —
+// kalau tidak, Date meluber ke bulan berikutnya dan siklus billing jadi salah.
+function fmtIDR(n){ const num = Number(n)||0; return "IDR " + num.toLocaleString("id-ID"); }
+function daysLeftLabel(dueDate){
+  if(!dueDate) return "";
+  const diff = daysBetween(todayStr(), dueDate);
+  if(diff < 0) return `Berakhir ${Math.abs(diff)} hari lalu`;
+  if(diff === 0) return "Berakhir hari ini";
+  return `${diff} Hari Lagi`;
+}
+function fmtDateShort(iso){
+  if(!iso) return "";
+  return new Date(iso+"T00:00:00").toLocaleDateString("id-ID",{day:"2-digit",month:"short"});
+}
+function emptyAdLogRow(){ return { _id:uid(), name:"", costPerLead:"", totalLeads:"", budgetUsed:"", totalBudget:"", endDate:"", active:true }; }
+
+function buildDailyWAText(dateStr, logEntries){
+  const dateLabel = new Date(dateStr+"T00:00:00").toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"});
+  let out = `Daily Report Ads\n${dateLabel}\n\n`;
+  logEntries.forEach(entry => {
+    if(!entry.client || !entry.campaigns || entry.campaigns.length===0) return;
+    out += `*${entry.client}*\n`;
+    entry.campaigns.forEach(c => {
+      const offTag = c.active===false ? " *OFF*" : "";
+      if(c.name) out += `${c.name}\n`;
+      out += `${fmtIDR(c.costPerLead)} (${c.totalLeads||0})${offTag}\n`;
+      if(c.budgetUsed || c.totalBudget) out += `Budget: ${fmtIDR(c.budgetUsed)} dari ${fmtIDR(c.totalBudget)}\n`;
+      if(c.endDate) out += `*End ${fmtDateShort(c.endDate)} (${daysLeftLabel(c.endDate)})*\n`;
+    });
+    out += `\n`;
+  });
+  return out.trim();
+}
+
+const LOGO_WHITE = "data:image/png;base64,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";
+
+// Kompres di HP: foto 4 MB jadi sekitar 80 KB. Tanpa ini, satu gambar saja
+// bisa menembus batas 1 MB per dokumen Firestore.
+async function compressImage(file){
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, MAX_IMG_WIDTH / bitmap.width);
+  const c = document.createElement("canvas");
+  c.width  = Math.round(bitmap.width  * scale);
+  c.height = Math.round(bitmap.height * scale);
+  c.getContext("2d").drawImage(bitmap, 0, 0, c.width, c.height);
+  bitmap.close && bitmap.close();
+  let q = IMG_QUALITY, data = c.toDataURL("image/jpeg", q);
+  while(data.length > MAX_IMG_BYTES && q > 0.25){
+    q -= 0.1;
+    data = c.toDataURL("image/jpeg", q);
+  }
+  if(data.length > MAX_IMG_BYTES) throw new Error("Gambar terlalu besar walau sudah dikompres. Coba potong dulu.");
+  return data;
+}
+function fmtKB(n){ return Math.round((n||0)/1024) + " KB"; }
+
+/* ===================== FIREBASE INIT ===================== */
+let db = null;
+let auth = null;
+let firebaseReady = false;
+let firebaseError = null;
+try{
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  auth = firebase.auth();
+  db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+  firebaseReady = true;
+}catch(e){ firebaseError = e.message; }
+
+const SERVER_TS = () => firebase.firestore.FieldValue.serverTimestamp();
+
+/* ===================== TOAST ===================== */
+function useToast(){
+  const [toast, setToast] = useState(null);
+  const timer = useRef(null);
+  const show = useCallback((msg, kind) => {
+    setToast({ msg, kind: kind || "ok" });
+    if(timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(()=>setToast(null), 4200);
+  }, []);
+  useEffect(() => () => { if(timer.current) clearTimeout(timer.current); }, []);
+  return { toast, show };
+}
+function friendlyError(e){
+  const code = (e && e.code) || "";
+  if(code.includes("permission-denied")) return "Kamu tidak punya izin untuk aksi ini.";
+  if(code.includes("unavailable")) return "Koneksi terputus. Perubahan akan dikirim ulang saat online.";
+  if(code.includes("not-found")) return "Data sudah tidak ada — mungkin dihapus orang lain.";
+  return (e && e.message) ? e.message : "Terjadi kesalahan. Coba lagi.";
+}
+
+/* ===================== APP ===================== */
+function App(){
+  const [tab, setTab] = useState("dashboard");
+  const [tasks, setTasks] = useState([]);
+  const [staff, setStaff] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [holidays, setHolidays] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
+  const [modalTask, setModalTask] = useState(null);
+  const [filterPic, setFilterPic] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterFlag, setFilterFlag] = useState("");
+  const [filterClient, setFilterClient] = useState("");
+  const [calMonth, setCalMonth] = useState(() => { const d=new Date(); d.setDate(1); return d; });
+  const [user, setUser] = useState(undefined); // undefined = memeriksa, null = keluar
+  const [documents, setDocuments] = useState([]);
+  const [dailyLog, setDailyLog] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const { toast, show } = useToast();
+
+  const isAdmin = !!(user && ADMIN_EMAILS.includes((user.email||"").toLowerCase()));
+  const myEmail = user ? (user.email||"").toLowerCase() : "";
+  const me = useMemo(() => staff.find(s => s.id === myEmail) || null, [staff, myEmail]);
+  const myRole = isAdmin ? "admin" : (me ? me.role : "");
+  const myName = isAdmin ? (me && me.name ? me.name : (user ? user.email.split("@")[0] : "Admin")) : (me ? me.name : "");
+  const activated = isAdmin || !!(me && me.role && me.active !== false);
+
+  const canApprove      = isAdmin || APPROVER_ROLES.includes(myRole);
+  const canCancel       = isAdmin || APPROVER_ROLES.includes(myRole);
+  const canDocsHistory  = isAdmin || DOCS_ROLES.includes(myRole);
+  const canMarkPosted   = isAdmin || POSTING_ROLES.includes(myRole);
+  const canSeeWorkload  = isAdmin || WORKLOAD_ROLES.includes(myRole);
+  const allowedCategories = (isAdmin || !ROLE_CATEGORIES[myRole]) ? CATEGORIES : ROLE_CATEGORIES[myRole];
+
+  // Semua tulisan lewat sini supaya kegagalan selalu kelihatan, tidak diam-diam.
+  const run = useCallback(async (fn, okMsg) => {
+    setBusy(true);
+    try{
+      await fn();
+      if(okMsg) show(okMsg, "ok");
+      return true;
+    }catch(e){
+      console.error(e);
+      show(friendlyError(e), "err");
+      return false;
+    }finally{
+      setBusy(false);
+    }
+  }, [show]);
+
+  useEffect(() => {
+    if(!firebaseReady) return;
+    const unsub = auth.onAuthStateChanged(u => setUser(u));
+    return () => unsub();
+  }, []);
+
+  // Daftarkan diri sendiri sekali saat login pertama (tanpa role — admin yang mengaktifkan).
+  useEffect(() => {
+    if(!firebaseReady || !user || isAdmin) return;
+    const email = (user.email||"").toLowerCase();
+    if(!email) return;
+    const ref = db.collection(STAFF_COLLECTION).doc(email);
+    ref.get().then(snap => {
+      if(!snap.exists){
+        return ref.set({ email, name:"", role:"", active:false, registeredAt: SERVER_TS() });
+      }
+    }).catch(e => console.error(e));
+  }, [user, isAdmin]);
+
+  // Ambil hanya task yang masih berjalan. Task Done dipanggil terpisah lewat menu Riwayat,
+  // supaya kuota baca harian tidak habis begitu data menumpuk.
+  useEffect(() => {
+    if(!firebaseReady || !user) return;
+    const unsub = db.collection(COLLECTION).limit(400).onSnapshot(snap => {
+      setTasks(prev => {
+        const map = new Map(prev.map(t => [t.id, t]));
+        snap.docChanges().forEach(ch => {
+          if(ch.type === "removed") map.delete(ch.doc.id);
+          else map.set(ch.doc.id, normalizeTask({ id: ch.doc.id, ...ch.doc.data() }));
+        });
+        return [...map.values()];
+      });
+      setLoading(false);
+      setConnected(true);
+    }, err => { setLoading(false); setConnected(false); console.error(err); show(friendlyError(err),"err"); });
+    return () => unsub();
+  }, [user, show]);
+
+  useEffect(() => {
+    if(!firebaseReady || !user) return;
+    const unsub = db.collection(STAFF_COLLECTION).onSnapshot(snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a,b)=>(a.name||a.id).localeCompare(b.name||b.id));
+      setStaff(list);
+    }, e => console.error(e));
+    return () => unsub();
+  }, [user]);
+
+  useEffect(() => {
+    if(!firebaseReady || !user) return;
+    const unsub = db.collection(PROJECTS_COLLECTION).onSnapshot(snap => {
+      const list = snap.docs.map(d => ({ id: d.id, name: d.data().name, active: d.data().active !== false }))
+        .sort((a,b)=>a.name.localeCompare(b.name));
+      setProjects(list);
+    }, e => console.error(e));
+    return () => unsub();
+  }, [user]);
+
+  useEffect(() => {
+    if(!firebaseReady || !user || !canDocsHistory) return;
+    const unsub = db.collection(DOCUMENTS_COLLECTION).onSnapshot(snap => {
+      setDocuments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, e => console.error(e));
+    return () => unsub();
+  }, [user, canDocsHistory]);
+
+  useEffect(() => {
+    if(!firebaseReady || !user || !canDocsHistory) return;
+    const unsub = db.collection(DAILY_LOG_COLLECTION).onSnapshot(snap => {
+      setDailyLog(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, e => console.error(e));
+    return () => unsub();
+  }, [user, canDocsHistory]);
+
+  useEffect(() => {
+    if(!firebaseReady || !user) return;
+    const unsub = db.collection(HOLIDAYS_COLLECTION).onSnapshot(snap => {
+      setHolidays(snap.docs.map(d => ({ id: d.id, date: d.data().date, name: d.data().name })));
+    }, e => console.error(e));
+    return () => unsub();
+  }, [user]);
+
+  const holidayMap = useMemo(() => {
+    const m = {};
+    holidays.forEach(h => { if(h.date) m[h.date] = h.name; });
+    return m;
+  }, [holidays]);
+
+  // Dokumen staff lama (dari sistem sebelumnya) ber-ID acak, bukan email.
+  // Dipisah supaya tidak tercampur dengan orang yang benar-benar baru login.
+  const isEmailId = (id) => typeof id === "string" && id.includes("@");
+  const staffLegacy  = useMemo(() => staff.filter(s => !isEmailId(s.id)), [staff]);
+  const liveTasks = useMemo(() => tasks.filter(t => t.archived !== true), [tasks]);
+  const archivedTasks = useMemo(() => tasks.filter(t => t.archived === true), [tasks]);
+  const staffActive  = useMemo(() => staff.filter(s => isEmailId(s.id) && s.role && s.active !== false), [staff]);
+  const staffPending = useMemo(() => staff.filter(s => isEmailId(s.id) && (!s.role || s.active === false)), [staff]);
+  const staffNames   = useMemo(() => staffActive.map(s => s.name).filter(Boolean), [staffActive]);
+  const reviewerNames= useMemo(() => staffActive.filter(s => APPROVER_ROLES.includes(s.role)).map(s=>s.name).filter(Boolean), [staffActive]);
+  const projectNames = useMemo(() => projects.filter(p=>p.active).map(p => p.name), [projects]);
+
+  function goToTasks(kind){
+    setFilterPic(""); setFilterClient("");
+    if(kind==="all"){ setFilterStatus(""); setFilterFlag(""); }
+    if(kind==="mine"){ setFilterStatus(""); setFilterFlag(""); setFilterPic(myName); }
+    if(kind==="overdue"){ setFilterStatus(""); setFilterFlag("OVERDUE"); }
+    if(kind==="duesoon"){ setFilterStatus(""); setFilterFlag("DUE SOON"); }
+    if(kind==="inprogress"){ setFilterStatus("In Progress"); setFilterFlag(""); }
+    if(kind==="review"){ setFilterStatus("Waiting Review"); setFilterFlag(""); }
+    setTab("tasks");
+  }
+
+  async function saveTask(task){
+    const isAds = task.category === "Paid Ads";
+    const isProd = task.category === "Production";
+    let title = (task.title||"").trim();
+    if(isAds){
+      const labels = (task.adItems||[]).map(a=>(a.label||"").trim()).filter(Boolean);
+      title = labels.length ? labels.join(", ")
+        : [task.platform, task.objective].filter(Boolean).join(" — ") || "Paid Ads";
+    }
+    if(!title){ show("Judul assignment belum diisi.","err"); return false; }
+    if(!task.client){ show("Pilih client dulu.","err"); return false; }
+    const cleanSubtasks = [{ description: title, priority: task.priority || "Medium",
+      progress: isAds ? (task.status==="Done" ? 100 : 0) : (Number(task.progress)||0) }];
+
+    const payload = {
+      client: task.client, category: task.category, pics: task.pics,
+      status: task.status, startDate: task.startDate, dueDate: task.dueDate,
+      notes: task.notes, showOnCalendar: (isAds || isProd) ? true : task.showOnCalendar,
+      title, priority: task.priority || "Medium", progress: Number(task.progress)||0,
+      subtasks: cleanSubtasks,
+      briefLink: task.briefLink || "", driveFolder: task.driveFolder || "",
+      reviewerTarget: task.reviewerTarget || "",
+      deliverables: isReviewCategory(task.category)
+        ? (task.deliverables||[]).filter(d => (d.label||"").trim()).map(d => ({
+            _id:d._id, label:d.label.trim(), role:d.role||"", pic:d.pic||"",
+            briefLink:d.briefLink||"", driveFolder:d.driveFolder||"", link:d.link||"",
+            state:d.state||"pending", note:d.note||"", at:d.at||"", by:d.by||"" }))
+        : [],
+      forPosting: task.category === "Graphic Design" ? (task.forPosting === true) : false,
+      platform: isAds ? task.platform : "", objective: isAds ? task.objective : "",
+      budget: isAds ? task.budget : "",
+      shootLocation: isProd ? task.shootLocation : "", shootTime: isProd ? task.shootTime : "",
+      equipment: isProd ? task.equipment : "", crew: isProd ? task.crew : "",
+      lastUpdate: todayStr(), updatedBy: myEmail, updatedAt: SERVER_TS(),
+    };
+    if(isAds){
+      payload.adItems = (task.adItems||[])
+        .filter(a => (a.label||"").trim() || (a.link||"").trim() || (a.caption||"").trim() || (a.proofLink||"").trim())
+        .map(a => ({ label:a.label||"", link:a.link||"", caption:a.caption||"",
+          proofLink:a.proofLink||"", proofUploadedAt:a.proofUploadedAt||"", proofUploadedBy:a.proofUploadedBy||"" }));
+      if(payload.adItems.length === 0) payload.adItems = [{ label:"",link:"",caption:"",proofLink:"",proofUploadedAt:"",proofUploadedBy:"" }];
+    }
+
+    const ok = await run(async () => {
+      if(task.id){
+        // Cek versi supaya perubahan orang lain tidak tertimpa diam-diam.
+        await db.runTransaction(async tx => {
+          const ref = db.collection(COLLECTION).doc(task.id);
+          const snap = await tx.get(ref);
+          if(!snap.exists) throw { code:"not-found" };
+          const current = Number(snap.data().version) || 0;
+          if(current !== (Number(task.version)||0)){
+            throw new Error("Task ini baru diubah orang lain. Tutup dulu, buka lagi, baru simpan.");
+          }
+          tx.set(ref, { ...payload, version: current + 1 }, { merge:true });
+        });
+      } else {
+        await db.collection(COLLECTION).add({
+          link:"", caption:"", previewLink:"", postingDate:"", livePostLink:"", postedAt:"", activity:[], adItems:[],
+          reviewerTarget:"", internalApprovedBy:"", completedAt:"", version:1,
+          createdAt: todayStr(), createdBy: myEmail, createdTs: SERVER_TS(),
+          ...payload,
+        });
+      }
+    }, "Tersimpan.");
+    if(ok) setModalTask(null);
+    return ok;
+  }
+
+  async function cancelTask(task){
+    const note = window.prompt("Alasan membatalkan task ini? (tercatat di riwayat)");
+    if(note === null) return;
+    if(!note.trim()){ show("Alasan wajib diisi.","err"); return; }
+    await taskAction(task.id, null,
+      newActivity("cancelled", `Task dibatalkan: ${note.trim()}`, myName),
+      { archived:true, archivedBy: myEmail, archivedAt: todayStr() }, "Task dibatalkan.");
+  }
+  async function restoreTask(id){
+    await taskAction(id, null, newActivity("restored", "Task diaktifkan kembali.", myName),
+      { archived:false }, "Task diaktifkan kembali.");
+  }
+  async function deleteTask(id, label){
+    if(!isAdmin && !canCancel) return;
+    const nama = label ? `"${label}"` : "task ini";
+    if(!window.confirm(`Hapus permanen ${nama}?\n\nSeluruh riwayat approval, komentar, dan link ikut hilang. Tidak bisa dikembalikan.`)) return;
+    await run(() => db.collection(COLLECTION).doc(id).delete(), "Task dihapus permanen.");
+  }
+
+  async function taskAction(taskId, statusUpdate, activityEntry, extraFields, okMsg){
+    const payload = { ...(extraFields||{}), lastUpdate: todayStr(), updatedBy: myEmail, updatedAt: SERVER_TS() };
+    if(statusUpdate) payload.status = statusUpdate;
+    if(activityEntry) payload.activity = firebase.firestore.FieldValue.arrayUnion(activityEntry);
+    payload.version = firebase.firestore.FieldValue.increment(1);
+    const ok = await run(() => db.collection(COLLECTION).doc(taskId).set(payload, {merge:true}), okMsg);
+    if(ok) setModalTask(null);
+    return ok;
+  }
+  // Yadi dan Robby bisa mengirim bersamaan — tanpa transaksi, salah satu akan tertimpa.
+  async function submitDeliverable(taskId, delivId, link, reviewerFallback){
+    return run(async () => {
+      await db.runTransaction(async tx => {
+        const ref = db.collection(COLLECTION).doc(taskId);
+        const snap = await tx.get(ref);
+        if(!snap.exists) throw { code:"not-found" };
+        const data = snap.data();
+        const list = (Array.isArray(data.deliverables) ? data.deliverables : []).map(d => ({...d}));
+        const idx = list.findIndex(d => d._id === delivId);
+        if(idx < 0) throw new Error("Daftar kiriman sudah berubah. Tutup lalu buka lagi.");
+        list[idx] = { ...list[idx], link, state:"submitted", note:"",
+          at: new Date().toISOString(), by: myName };
+        const activity = [...(data.activity||[]),
+          newActivity("link", `${list[idx].label} dikirim — ${link}`, myName)];
+        const patch = {
+          deliverables: list,
+          link: list[0] ? (list[0].link || link) : link,
+          lastUpdate: todayStr(), updatedBy: myEmail, updatedAt: SERVER_TS(),
+          version: (Number(data.version)||0) + 1,
+        };
+        if(list.every(d => d.state === "submitted")){
+          const target = data.reviewerTarget || reviewerFallback || "";
+          patch.status = "Waiting Review";
+          patch.reviewerTarget = target;
+          activity.push(newActivity("status",
+            `Semua kiriman lengkap — masuk review${target ? ` (${target})` : ""}.`, myName));
+        }
+        patch.activity = activity;
+        tx.set(ref, patch, { merge:true });
+      });
+    }, "Kiriman tersimpan.");
+  }
+
+  // Revisi ditujukan ke kiriman tertentu — yang sudah benar tidak ikut diulang.
+  async function requestRevisionOn(taskId, delivIds, note){
+    if(!note.trim()) return false;
+    const ok = await run(async () => {
+      await db.runTransaction(async tx => {
+        const ref = db.collection(COLLECTION).doc(taskId);
+        const snap = await tx.get(ref);
+        if(!snap.exists) throw { code:"not-found" };
+        const data = snap.data();
+        const list = (Array.isArray(data.deliverables) ? data.deliverables : []).map(d =>
+          delivIds.includes(d._id) ? { ...d, state:"revision", note: note.trim() } : d);
+        const names = list.filter(d => delivIds.includes(d._id)).map(d => d.label).join(", ");
+        tx.set(ref, {
+          deliverables: list, status: "Revision",
+          activity: [...(data.activity||[]), newActivity("revision", `${names || "Task"}: ${note.trim()}`, myName)],
+          lastUpdate: todayStr(), updatedBy: myEmail, updatedAt: SERVER_TS(),
+          version: (Number(data.version)||0) + 1,
+        }, { merge:true });
+      });
+    }, "Revisi diminta.");
+    if(ok) setModalTask(null);
+    return ok;
+  }
+
+  const submitForReview = (id, link, reviewer) =>
+    taskAction(id, "Waiting Review", newActivity("link", `Dikirim ke ${reviewer} — ${link}`, myName), { link, reviewerTarget: reviewer }, "Dikirim untuk review.");
+  const requestRevision = (id, note) =>
+    note.trim() ? taskAction(id, "Revision", newActivity("revision", note, myName), {}, "Revisi diminta.") : null;
+  const approveTask = (id, note, category) => {
+    const gate = needsClientGate(category);
+    return taskAction(id, gate ? "Menunggu Approval Klien" : "Approved",
+      newActivity("approval", note || (gate ? "Disetujui internal — menunggu konfirmasi client." : "Disetujui."), myName),
+      gate ? { internalApprovedBy: myEmail } : {},
+      gate ? "Disetujui internal. Menunggu konfirmasi client." : "Disetujui.");
+  };
+  const clientApprove = async (id) => {
+    await purgeRevisionImages(id);
+    return taskAction(id, "Approved", newActivity("client_approval", "Client sudah approve.", myName), {}, "Client approve dicatat.");
+  };
+  const clientRevision = (id, note) =>
+    note.trim() ? taskAction(id, "Revision", newActivity("client_revision", `Dari client: ${note}`, myName), {}, "Revisi client dicatat.") : null;
+  // Setelah approve, PM/CS compile dulu jadi preview — itu yang jadi acuan Operations,
+  // bukan link kerjaan mentah dari editor.
+  const sendToOperations = (id, previewLink, postingDate) =>
+    taskAction(id, "Ready to Post",
+      newActivity("preview", `Preview siap${postingDate ? ` — target tayang ${fmtDate(postingDate)}` : ""}: ${previewLink}`, myName),
+      { previewLink, postingDate }, "Dikirim ke Operations.");
+
+  const markDoneManual = (id) =>
+    taskAction(id, "Done", newActivity("status", "Ditandai selesai.", myName), { completedAt: todayStr() }, "Ditandai selesai.");
+
+  const returnToPM = (id, note) =>
+    note.trim() ? taskAction(id, "Approved",
+      newActivity("returned", `Dikembalikan ke PM: ${note}`, myName),
+      { previewLink: "" }, "Dikembalikan ke PM.") : null;
+
+  const markPosted = (id, liveLink) =>
+    taskAction(id, "Done", newActivity("posted", liveLink, myName),
+      { livePostLink: liveLink, postedAt: todayStr(), completedAt: todayStr() }, "Ditandai sudah tayang.");
+
+  // Kunci dokumen: <taskId>_rev untuk acuan revisi, <taskId>_ads untuk bukti tayang.
+  async function addImage(taskId, kind, dataUrl, label){
+    return run(async () => {
+      const ref = db.collection(IMAGES_COLLECTION).doc(`${taskId}_${kind}`);
+      await db.runTransaction(async tx => {
+        const snap = await tx.get(ref);
+        const list = snap.exists && Array.isArray(snap.data().images) ? snap.data().images.slice() : [];
+        if(list.length >= MAX_IMG_COUNT) throw new Error(`Maksimal ${MAX_IMG_COUNT} gambar. Hapus salah satu dulu.`);
+        list.push({ _id: uid(), data: dataUrl, label: label||"", by: myName, at: new Date().toISOString() });
+        tx.set(ref, { taskId, kind, images: list, updatedAt: SERVER_TS() }, { merge:true });
+      });
+    }, "Gambar tersimpan.");
+  }
+  async function removeImage(taskId, kind, imgId){
+    return run(async () => {
+      const ref = db.collection(IMAGES_COLLECTION).doc(`${taskId}_${kind}`);
+      await db.runTransaction(async tx => {
+        const snap = await tx.get(ref);
+        if(!snap.exists) return;
+        const list = (snap.data().images||[]).filter(x => x._id !== imgId);
+        tx.set(ref, { images: list, updatedAt: SERVER_TS() }, { merge:true });
+      });
+    }, "Gambar dihapus.");
+  }
+  // Acuan revisi dibuang begitu client approve — inilah yang menjaga kuota tetap kecil.
+  function purgeRevisionImages(taskId){
+    return db.collection(IMAGES_COLLECTION).doc(`${taskId}_rev`).delete().catch(()=>{});
+  }
+
+  const addComment = (id, text) =>
+    text.trim() ? taskAction(id, null, newActivity("comment", text, myName), {}, "Komentar terkirim.") : null;
+
+  const addDocument = (doc) => run(
+    () => db.collection(DOCUMENTS_COLLECTION).add({ ...doc, addedAt: new Date().toISOString(), addedByEmail: myEmail }),
+    "Dokumen ditambahkan.");
+  async function deleteDocument(id){
+    if(!isAdmin) return;
+    if(!window.confirm("Hapus dokumen ini dari daftar?")) return;
+    await run(() => db.collection(DOCUMENTS_COLLECTION).doc(id).delete(), "Dokumen dihapus.");
+  }
+
+  // ID dokumen dibuat dari projectId, bukan nama client — nama client bisa berubah.
+  function saveDailyLog(client, date, campaigns){
+    const proj = projects.find(p => p.name === client);
+    const key = proj ? proj.id : client.replace(/[^A-Za-z0-9]/g,"_");
+    return run(() => db.collection(DAILY_LOG_COLLECTION).doc(`${date}_${key}`).set({
+      date, client, projectId: proj ? proj.id : "", campaigns,
+      updatedAt: new Date().toISOString(), updatedBy: myEmail,
+    }, {merge:true}), "Log tersimpan.");
+  }
+  async function deleteDailyLog(id){
+    if(!isAdmin) return;
+    if(!window.confirm("Hapus log ini? Tidak bisa dibatalkan.")) return;
+    await run(() => db.collection(DAILY_LOG_COLLECTION).doc(id).delete(), "Log dihapus.");
+  }
+
+  const upsertStaff = (email, data) => run(
+    () => db.collection(STAFF_COLLECTION).doc(email.trim().toLowerCase())
+      .set({ email: email.trim().toLowerCase(), ...data }, {merge:true}), "Staff tersimpan.");
+  const archiveStaff = (email, active) => run(
+    () => db.collection(STAFF_COLLECTION).doc(email).set({ active }, {merge:true}),
+    active ? "Staff diaktifkan." : "Staff diarsipkan.");
+  const deleteStaffDoc = (id) => run(
+    () => db.collection(STAFF_COLLECTION).doc(id).delete(), "Data lama dihapus.");
+  const addProject = (name) => run(
+    () => db.collection(PROJECTS_COLLECTION).add({ name, active:true }), "Project ditambahkan.");
+  const archiveProject = (id, active) => run(
+    () => db.collection(PROJECTS_COLLECTION).doc(id).set({ active }, {merge:true}),
+    active ? "Project diaktifkan." : "Project diarsipkan.");
+  const addHoliday = (date, name) => run(
+    () => db.collection(HOLIDAYS_COLLECTION).doc(date).set({ date, name }), "Hari libur ditambahkan.");
+  const removeHoliday = (id) => run(
+    () => db.collection(HOLIDAYS_COLLECTION).doc(id).delete(), "Hari libur dihapus.");
+  const seedHolidays = () => run(async () => {
+    const batch = db.batch();
+    HOLIDAY_SEED_2026.forEach(([date,name]) => {
+      batch.set(db.collection(HOLIDAYS_COLLECTION).doc(date), { date, name });
+    });
+    await batch.commit();
+  }, "Hari libur 2026 diisi.");
+  const seedProjects = () => run(async () => {
+    const batch = db.batch();
+    DEFAULT_PROJECTS.forEach(name => {
+      batch.set(db.collection(PROJECTS_COLLECTION).doc(name.replace(/[^A-Za-z0-9]/g,"_")), { name, active:true });
+    });
+    await batch.commit();
+  }, "Daftar client diisi.");
+
+  if(!firebaseReady) return <SetupNotice error={firebaseError} />;
+  if(user === undefined) return <div className="login-wrap"><div style={{color:"#fff"}}>Memuat...</div></div>;
+  if(user === null) return <LoginScreen />;
+
+  if(!activated){
+    return (
+      <div className="login-wrap">
+        <img src={LOGO_WHITE} alt="UBAHdigital" className="login-logo" />
+        <div className="login-card">
+          <h2>Akun belum aktif</h2>
+          <div className="sub" style={{marginBottom:16}}>
+            Email kamu ({user.email}) sudah terdaftar. Admin akan mengisi nama dan job desk kamu —
+            setelah itu tinggal muat ulang halaman ini.
+          </div>
+          <button className="btn btn-gold" style={{width:"100%",marginBottom:8}} onClick={()=>window.location.reload()}>Muat Ulang</button>
+          <button className="btn btn-outline" style={{width:"100%"}} onClick={()=>auth.signOut()}>Keluar</button>
+        </div>
+      </div>
+    );
+  }
+
+  const tabList = [
+    "dashboard","tasks","posting",
+    ...(canDocsHistory ? ["dokumen","history"] : []),
+    "calendar",
+    ...(isAdmin ? ["manage"] : []),
+  ];
+  const tabLabel = { dashboard:"Dashboard", tasks:"Task Tracker", posting:"Siap Posting",
+    dokumen:"Dokumen", history:"Riwayat", calendar:"Calendar", manage:"Kelola" };
+  const activeTab = tabList.includes(tab) ? tab : "dashboard";
+
+  return (
+    <div className="app">
+      <div className="topbar" style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
+          <img src={LOGO_WHITE} alt="UBAHdigital" style={{height:34}} />
+          <div style={{minWidth:0}}>
+            <div className="tag">#SAATNYABERUBAH</div>
+            <h1>Tracker<span className="role-pill">{isAdmin ? "ADMIN" : (ROLES[myRole]||"TIM").toUpperCase()}</span></h1>
+          </div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:5,alignItems:"flex-end"}}>
+          <div style={{fontSize:11,opacity:.9}}>{myName}</div>
+          <div style={{display:"flex",gap:6}}>
+            <button className="logout-btn" onClick={()=>setShowPwd(true)}>Password</button>
+            <button className="logout-btn" onClick={()=>auth.signOut()}>Keluar</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="tabs">
+        {tabList.map(t => (
+          <button key={t} className={"tab" + (activeTab===t ? " active":"")} onClick={()=>setTab(t)}>{tabLabel[t]}</button>
+        ))}
+      </div>
+
+      <div className="content">
+        {loading ? <div className="empty">Memuat data...</div> : (
+          <>
+            {activeTab==="dashboard" && (
+              <Dashboard tasks={liveTasks} connected={connected} staffNames={staffNames} onNavigate={goToTasks}
+                myName={myName} onOpenTask={setModalTask}
+                canSeeWorkload={canSeeWorkload} canApprove={canApprove} />
+            )}
+            {activeTab==="tasks" && (
+              <TaskList tasks={liveTasks} archivedTasks={archivedTasks} onEdit={setModalTask} onDelete={deleteTask}
+                onCancel={cancelTask} onRestore={restoreTask} canCancel={canCancel} isAdmin={isAdmin}
+                staffNames={staffNames} projectNames={projectNames}
+                filterPic={filterPic} setFilterPic={setFilterPic}
+                filterStatus={filterStatus} setFilterStatus={setFilterStatus}
+                filterFlag={filterFlag} setFilterFlag={setFilterFlag}
+                filterClient={filterClient} setFilterClient={setFilterClient} />
+            )}
+            {activeTab==="posting" && <ReadyToPostView tasks={liveTasks} onOpenTask={setModalTask} />}
+            {activeTab==="dokumen" && canDocsHistory && (
+              <DocumentsView tasks={liveTasks} projectNames={projectNames} documents={documents} myName={myName}
+                isAdmin={isAdmin} onAddDocument={addDocument} onDeleteDocument={deleteDocument} busy={busy} />
+            )}
+            {activeTab==="history" && canDocsHistory && (
+              <PostingHistoryView tasks={liveTasks} projectNames={projectNames} dailyLog={dailyLog}
+                onSaveDailyLog={saveDailyLog} isAdmin={isAdmin} onDeleteDailyLog={deleteDailyLog} busy={busy} />
+            )}
+            {activeTab==="calendar" && (
+              <CalendarView tasks={liveTasks} calMonth={calMonth} setCalMonth={setCalMonth} holidayMap={holidayMap} />
+            )}
+            {activeTab==="manage" && isAdmin && (
+              <ManageView staffActive={staffActive} staffPending={staffPending} staffLegacy={staffLegacy}
+                projects={projects} holidays={holidays} busy={busy}
+                onUpsertStaff={upsertStaff} onArchiveStaff={archiveStaff} onDeleteStaffDoc={deleteStaffDoc}
+                onAddProject={addProject} onArchiveProject={archiveProject}
+                onAddHoliday={addHoliday} onRemoveHoliday={removeHoliday} onSeedHolidays={seedHolidays}
+                onSeedProjects={seedProjects} />
+            )}
+          </>
+        )}
+      </div>
+
+      {activeTab==="tasks" && <button className="fab" title="Task baru" onClick={()=>setModalTask(emptyTask())}>+</button>}
+
+      {modalTask && (
+        <TaskModal task={modalTask.id ? (tasks.find(t=>t.id===modalTask.id) || modalTask) : modalTask}
+          onClose={()=>setModalTask(null)} onSave={saveTask} busy={busy}
+          isAdmin={isAdmin} myRole={myRole} myEmail={myEmail} myName={myName}
+          canApprove={canApprove} canMarkPosted={canMarkPosted}
+          allowedCategories={allowedCategories}
+          staffNames={staffNames} staffList={staffActive} projectNames={projectNames} reviewerNames={reviewerNames}
+          onSubmitDeliverable={submitDeliverable} onRequestRevisionOn={requestRevisionOn}
+          onRequestRevision={requestRevision} onApproveTask={approveTask}
+          onClientApprove={clientApprove} onClientRevision={clientRevision}
+          onSendToOperations={sendToOperations} onMarkPosted={markPosted}
+          onMarkDoneManual={markDoneManual} onReturnToPM={returnToPM}
+          onAddComment={addComment} onAddImage={addImage} onRemoveImage={removeImage} />
+      )}
+      {showPwd && <PasswordModal onClose={()=>setShowPwd(false)} show={show} />}
+      {toast && <div className={"toast " + toast.kind}>{toast.msg}</div>}
+    </div>
+  );
+}
+
+/* ===================== LOGIN & AKUN ===================== */
+function LoginScreen(){
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function handleLogin(e){
+    e.preventDefault();
+    setError(""); setInfo(""); setBusy(true);
+    try{
+      await auth.signInWithEmailAndPassword(email.trim().toLowerCase(), password);
+    }catch(err){
+      setError("Login gagal — cek lagi email & password.");
+    }
+    setBusy(false);
+  }
+  async function handleReset(){
+    setError(""); setInfo("");
+    if(!email.trim()){ setError("Isi dulu email kamu di atas, baru tekan Lupa Password."); return; }
+    try{
+      await auth.sendPasswordResetEmail(email.trim().toLowerCase());
+      setInfo("Email reset sudah dikirim. Cek inbox — kalau tidak ada, cek folder Spam.");
+    }catch(err){
+      setInfo("Kalau email itu terdaftar, link reset sudah dikirim. Cek inbox dan folder Spam.");
+    }
+  }
+
+  return (
+    <div className="login-wrap">
+      <img src={LOGO_WHITE} alt="UBAHdigital" className="login-logo" />
+      <div className="login-card">
+        <h2>Tracker</h2>
+        <div className="sub">Masuk pakai email kamu sendiri.</div>
+        {error && <div className="login-error">{error}</div>}
+        {info && <div style={{background:"#DFF3E8",color:"var(--green)",padding:"8px 10px",borderRadius:8,fontSize:12,marginBottom:12}}>{info}</div>}
+        <form onSubmit={handleLogin}>
+          <div className="field">
+            <label htmlFor="lg-email">Email</label>
+            <input id="lg-email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoCapitalize="none" autoComplete="username" />
+          </div>
+          <div className="field">
+            <label htmlFor="lg-pass">Password</label>
+            <input id="lg-pass" type="password" value={password} onChange={e=>setPassword(e.target.value)} required autoComplete="current-password" />
+          </div>
+          <button className="btn btn-gold" type="submit" style={{width:"100%"}} disabled={busy}>
+            {busy ? "Memproses..." : "Masuk"}
+          </button>
+        </form>
+        <button className="btn btn-outline btn-sm" style={{width:"100%",marginTop:10}} onClick={handleReset}>Lupa Password</button>
+      </div>
+    </div>
+  );
+}
+
+function PasswordModal({onClose, show}){
+  const [p1, setP1] = useState("");
+  const [p2, setP2] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function submit(){
+    setErr("");
+    if(p1.length < 6){ setErr("Password minimal 6 karakter."); return; }
+    if(p1 !== p2){ setErr("Dua isian password belum sama."); return; }
+    setBusy(true);
+    try{
+      await auth.currentUser.updatePassword(p1);
+      show("Password berhasil diganti.","ok");
+      onClose();
+    }catch(e){
+      setErr(e.code === "auth/requires-recent-login"
+        ? "Demi keamanan, keluar dulu lalu masuk lagi, baru ganti password."
+        : friendlyError(e));
+    }
+    setBusy(false);
+  }
+
+  return (
+    <div className="modal-bg" onMouseDown={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className="modal" style={{maxWidth:400}}>
+        <div className="section-title">Ganti Password</div>
+        {err && <div className="login-error">{err}</div>}
+        <div className="field">
+          <label htmlFor="np1">Password Baru</label>
+          <input id="np1" type="password" value={p1} onChange={e=>setP1(e.target.value)} autoComplete="new-password" />
+        </div>
+        <div className="field">
+          <label htmlFor="np2">Ulangi Password Baru</label>
+          <input id="np2" type="password" value={p2} onChange={e=>setP2(e.target.value)} autoComplete="new-password" />
+        </div>
+        <div className="modal-actions">
+          <button className="btn btn-outline" onClick={onClose}>Batal</button>
+          <button className="btn btn-gold" onClick={submit} disabled={busy}>{busy ? "Menyimpan..." : "Simpan"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SetupNotice({error}){
+  return (
+    <div className="setup-box">
+      <b>Firebase belum tersambung.</b><br/><br/>
+      Buka <code>index.html</code>, cari blok <code>firebaseConfig</code>, lalu pastikan isinya sama dengan
+      config di Firebase Console (Project Settings → General → Your apps).<br/><br/>
+      {error && <>Pesan teknis: <code>{error}</code><br/><br/></>}
+      Setelah diperbaiki, simpan file lalu muat ulang halaman ini.
+    </div>
+  );
+}
+
+/* ===================== KELOLA ===================== */
+function ManageView({staffActive, staffPending, staffLegacy, projects, holidays, busy,
+  onUpsertStaff, onArchiveStaff, onDeleteStaffDoc, onAddProject, onArchiveProject,
+  onAddHoliday, onRemoveHoliday, onSeedHolidays, onSeedProjects}){
+  const [newProject, setNewProject] = useState("");
+  const [mEmail, setMEmail] = useState("");
+  const [mName, setMName] = useState("");
+  const [mRole, setMRole] = useState("pm");
+  const [holDate, setHolDate] = useState("");
+  const [holName, setHolName] = useState("");
+
+  const active = staffActive;
+  const archived = staffPending.filter(s => s.role && s.active === false);
+  const approverCount = active.filter(s => APPROVER_ROLES.includes(s.role)).length;
+
+  return (
+    <div>
+      {approverCount < 2 && (
+        <div className="warn-box">
+          <b>Perhatian:</b> baru ada {approverCount} orang ber-job desk PM / Content Strategist.
+          Gerbang approval butuh minimal 2 orang — kalau cuma 1, konfirmasi client akan sering mentok
+          dan harus ditembus Admin.
+        </div>
+      )}
+
+      {staffPending.filter(s => !s.role).length > 0 && (
+        <div className="card pending-box">
+          <div className="section-title">Menunggu Aktivasi ({staffPending.filter(s => !s.role).length})</div>
+          <div className="locked-note">Orang-orang ini sudah login sekali. Isi nama dan job desk-nya supaya bisa mulai kerja.</div>
+          {staffPending.filter(s => !s.role).map(s => <PendingRow key={s.id} row={s} onSave={onUpsertStaff} busy={busy} />)}
+        </div>
+      )}
+
+      <div className="card">
+        <div className="section-title">Staff Aktif ({active.length})</div>
+        {active.map(s => <StaffRow key={s.id} row={s} onSave={onUpsertStaff} onArchive={onArchiveStaff} busy={busy} />)}
+        {active.length===0 && <div style={{color:"var(--grey)",fontSize:13}}>Belum ada staff aktif.</div>}
+
+        <div style={{marginTop:16,paddingTop:12,borderTop:"1px solid var(--line)"}}>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Tambah Manual</div>
+          <div className="locked-note">Biasanya tidak perlu — nama muncul sendiri di "Menunggu Aktivasi" setelah orangnya login sekali.</div>
+          <div className="field"><label htmlFor="ms-email">Email login</label>
+            <input id="ms-email" value={mEmail} onChange={e=>setMEmail(e.target.value)} placeholder="nama@gmail.com" autoCapitalize="none" /></div>
+          <div className="row2">
+            <div className="field"><label htmlFor="ms-name">Nama</label>
+              <input id="ms-name" value={mName} onChange={e=>setMName(e.target.value)} placeholder="mis. Dhanty" /></div>
+            <div className="field"><label htmlFor="ms-role">Job Desk</label>
+              <select id="ms-role" value={mRole} onChange={e=>setMRole(e.target.value)}>
+                {Object.entries(ROLES).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+              </select></div>
+          </div>
+          <button className="btn btn-gold btn-sm" disabled={busy} onClick={async ()=>{
+            if(!mEmail.trim() || !mName.trim()) return;
+            const ok = await onUpsertStaff(mEmail, { name:mName.trim(), role:mRole, active:true });
+            if(ok){ setMEmail(""); setMName(""); }
+          }}>Tambah Staff</button>
+        </div>
+
+        {archived.length>0 && (
+          <div style={{marginTop:16,paddingTop:12,borderTop:"1px solid var(--line)"}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:6}}>Diarsipkan ({archived.length})</div>
+            <div className="locked-note">Riwayat task mereka tetap utuh. Bisa diaktifkan lagi kapan saja.</div>
+            {archived.map(s => (
+              <div key={s.id} className="manage-row">
+                <span style={{color:"var(--grey)"}}>{s.name || s.id} · {ROLES[s.role]||"-"}</span>
+                <button className="btn btn-outline btn-sm" disabled={busy} onClick={()=>onArchiveStaff(s.id, true)}>Aktifkan</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {staffLegacy.length > 0 && (
+        <div className="card" style={{borderLeft:"4px solid var(--red)"}}>
+          <div className="section-title">Data Staff Lama ({staffLegacy.length})</div>
+          <div className="locked-note">
+            Ini sisa data dari sistem lama — cuma berisi nama, tanpa email, jadi tidak bisa dipakai untuk login.
+            <b> Jangan diaktifkan.</b> Nama-nama ini masih dipakai sebagai pilihan PIC di task lama,
+            jadi hapus setelah orangnya login sendiri dan kamu aktifkan lewat daftar di atas.
+          </div>
+          {staffLegacy.map(s => (
+            <div key={s.id} className="manage-row">
+              <span>{s.name || "(tanpa nama)"}</span>
+              <button className="btn btn-outline btn-sm" disabled={busy}
+                onClick={()=>{ if(window.confirm(`Hapus data lama "${s.name||s.id}"? Task yang sudah ada tidak terpengaruh.`)) onDeleteStaffDoc(s.id); }}>Hapus</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card">
+        <div className="section-title">Client / Project</div>
+        {projects.filter(p=>p.active).map(p => (
+          <div key={p.id} className="manage-row">
+            <span>{p.name}</span>
+            <button className="btn btn-outline btn-sm" disabled={busy}
+              onClick={()=>{ if(window.confirm(`Arsipkan ${p.name}? Task lamanya tetap tersimpan.`)) onArchiveProject(p.id, false); }}>Arsipkan</button>
+          </div>
+        ))}
+        {projects.filter(p=>p.active).length===0 && (
+          <div>
+            <div style={{color:"var(--grey)",fontSize:13,marginBottom:8}}>Belum ada client.</div>
+            <button className="btn btn-outline btn-sm" disabled={busy} onClick={onSeedProjects}>Isi Daftar Client Bawaan</button>
+          </div>
+        )}
+        {projects.filter(p=>!p.active).map(p => (
+          <div key={p.id} className="manage-row">
+            <span style={{color:"var(--grey)"}}>{p.name} (arsip)</span>
+            <button className="btn btn-outline btn-sm" disabled={busy} onClick={()=>onArchiveProject(p.id, true)}>Aktifkan</button>
+          </div>
+        ))}
+        <div className="add-row">
+          <input placeholder="Nama client/project baru" value={newProject} onChange={e=>setNewProject(e.target.value)} />
+          <button className="btn btn-gold btn-sm" disabled={busy} onClick={async ()=>{
+            if(!newProject.trim()) return;
+            const ok = await onAddProject(newProject.trim());
+            if(ok) setNewProject("");
+          }}>Tambah</button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="section-title">Hari Libur & Tanggal Merah</div>
+        <div className="locked-note">Dipakai di Calendar. Perbarui tiap tahun — kalau kosong, kalender tidak menandai tanggal merah.</div>
+        {holidays.length===0 && (
+          <button className="btn btn-outline btn-sm" style={{marginBottom:10}} disabled={busy} onClick={onSeedHolidays}>
+            Isi Hari Libur 2026
+          </button>
+        )}
+        <div style={{maxHeight:240,overflowY:"auto"}}>
+          {[...holidays].sort((a,b)=>(a.date||"").localeCompare(b.date||"")).map(h => (
+            <div key={h.id} className="manage-row">
+              <span style={{fontSize:12}}><b>{fmtDate(h.date)}</b> · {h.name}</span>
+              <button className="btn btn-outline btn-sm" disabled={busy} onClick={()=>onRemoveHoliday(h.id)}>Hapus</button>
+            </div>
+          ))}
+        </div>
+        <div className="row2" style={{marginTop:10}}>
+          <div className="field" style={{marginBottom:6}}>
+            <label htmlFor="hol-d">Tanggal</label>
+            <input id="hol-d" type="date" value={holDate} onChange={e=>setHolDate(e.target.value)} />
+          </div>
+          <div className="field" style={{marginBottom:6}}>
+            <label htmlFor="hol-n">Keterangan</label>
+            <input id="hol-n" value={holName} onChange={e=>setHolName(e.target.value)} placeholder="mis. Cuti Bersama" />
+          </div>
+        </div>
+        <button className="btn btn-gold btn-sm" disabled={busy} onClick={async ()=>{
+          if(!holDate || !holName.trim()) return;
+          const ok = await onAddHoliday(holDate, holName.trim());
+          if(ok){ setHolDate(""); setHolName(""); }
+        }}>Tambah Hari Libur</button>
+      </div>
+    </div>
+  );
+}
+
+function PendingRow({row, onSave, busy}){
+  const [name, setName] = useState("");
+  const [role, setRole] = useState("");
+  return (
+    <div style={{borderBottom:"1px solid var(--line)",padding:"10px 0"}}>
+      <div style={{fontSize:12,fontWeight:700,marginBottom:6,wordBreak:"break-all"}}>{row.id}</div>
+      <div className="row2" style={{marginBottom:6}}>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Nama"
+          style={{padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}} />
+        <select value={role} onChange={e=>setRole(e.target.value)}
+          style={{padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}}>
+          <option value="">Pilih job desk...</option>
+          {Object.entries(ROLES).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+        </select>
+      </div>
+      <button className="btn btn-gold btn-sm" disabled={!name.trim() || !role || busy}
+        onClick={()=>onSave(row.id, { name:name.trim(), role, active:true })}>Aktifkan</button>
+    </div>
+  );
+}
+
+function StaffRow({row, onSave, onArchive, busy}){
+  const [edit, setEdit] = useState(false);
+  const [name, setName] = useState(row.name || "");
+  const [role, setRole] = useState(row.role || "");
+  if(!edit){
+    return (
+      <div className="manage-row">
+        <div style={{minWidth:0}}>
+          <div style={{fontWeight:700}}>{row.name || row.id}</div>
+          <div style={{fontSize:11,color:"var(--grey)",wordBreak:"break-all"}}>{ROLES[row.role]||"-"} · {row.id}</div>
+        </div>
+        <div style={{display:"flex",gap:6,flexShrink:0}}>
+          <button className="btn btn-outline btn-sm" onClick={()=>setEdit(true)}>Ubah</button>
+          <button className="btn btn-outline btn-sm" disabled={busy}
+            onClick={()=>{ if(window.confirm(`Arsipkan ${row.name||row.id}? Riwayat task-nya tetap tersimpan.`)) onArchive(row.id, false); }}>Arsipkan</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{borderBottom:"1px solid var(--line)",padding:"10px 0"}}>
+      <div style={{fontSize:11,color:"var(--grey)",marginBottom:6,wordBreak:"break-all"}}>{row.id}</div>
+      <div className="row2" style={{marginBottom:6}}>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Nama"
+          style={{padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}} />
+        <select value={role} onChange={e=>setRole(e.target.value)}
+          style={{padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}}>
+          {Object.entries(ROLES).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+        </select>
+      </div>
+      <div style={{display:"flex",gap:8}}>
+        <button className="btn btn-outline btn-sm" onClick={()=>setEdit(false)}>Batal</button>
+        <button className="btn btn-gold btn-sm" disabled={!name.trim() || !role || busy}
+          onClick={async ()=>{ const ok = await onSave(row.id, { name:name.trim(), role, active:true }); if(ok) setEdit(false); }}>Simpan</button>
+      </div>
+    </div>
+  );
+}
+
+
+/* ===================== DOKUMEN ===================== */
+function DocumentsView({tasks, projectNames, documents, myName, isAdmin, onAddDocument, onDeleteDocument, busy}){
+  const [openClient, setOpenClient] = useState(null);
+  const [q, setQ] = useState("");
+
+  // Satu kali hitung untuk semua client — bukan sekali per client di dalam map.
+  const counts = useMemo(() => {
+    const m = new Map();
+    const bump = c => m.set(c, (m.get(c)||0) + 1);
+    tasks.forEach(t => { if(DOC_TASK_CATEGORIES.includes(t.category) && t.link) bump(t.client); });
+    documents.forEach(d => bump(d.client));
+    return m;
+  }, [tasks, documents]);
+
+  const globalHits = useMemo(() => {
+    if(!q.trim()) return null;
+    const k = q.toLowerCase();
+    return documents.filter(d => (d.title||"").toLowerCase().includes(k) || (d.client||"").toLowerCase().includes(k));
+  }, [q, documents]);
+
+  if(openClient){
+    return <ClientDocuments client={openClient} tasks={tasks} documents={documents} myName={myName}
+      isAdmin={isAdmin} onAddDocument={onAddDocument} onDeleteDocument={onDeleteDocument}
+      onBack={()=>setOpenClient(null)} busy={busy} />;
+  }
+
+  return (
+    <div>
+      <div style={{fontSize:12,color:"var(--grey)",marginBottom:10}}>
+        Pilih brand untuk melihat semua dokumen — report, company profile, kontrak, ideation,
+        dan file kerjaan yang sudah di-approve.
+      </div>
+      <div className="filter-row">
+        <input placeholder="Cari dokumen di semua client..." value={q} onChange={e=>setQ(e.target.value)} style={{flex:1}} />
+      </div>
+
+      {globalHits ? (
+        <>
+          <div className="section-title" style={{fontSize:13}}>Hasil pencarian ({globalHits.length})</div>
+          {globalHits.length===0 && <div className="empty">Tidak ada dokumen yang cocok.</div>}
+          {globalHits.map(d => (
+            <div key={d.id} className="card">
+              <span className="badge badge-grey">{d.docType}</span>
+              <div style={{fontSize:13,fontWeight:700,margin:"5px 0 2px"}}>{d.title}</div>
+              <div style={{fontSize:11,color:"var(--gold)",fontWeight:700,marginBottom:3}}>{d.client}{d.period ? " · " + d.period : ""}</div>
+              <ExternalLink href={d.link} style={{fontSize:12,color:"var(--brand-deep)",wordBreak:"break-all"}}>{d.link}</ExternalLink>
+            </div>
+          ))}
+        </>
+      ) : (
+        projectNames.map(p => (
+          <button key={p} className="card card-btn"
+            style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}
+            onClick={()=>setOpenClient(p)}>
+            <span style={{fontWeight:700,fontSize:13}}>{p}</span>
+            <span className="badge badge-grey">{counts.get(p)||0} dokumen</span>
+          </button>
+        ))
+      )}
+    </div>
+  );
+}
+
+function ClientDocuments({client, tasks, documents, myName, isAdmin, onAddDocument, onDeleteDocument, onBack, busy}){
+  const [typeFilter, setTypeFilter] = useState("");
+  const [q, setQ] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [title, setTitle] = useState("");
+  const [docType, setDocType] = useState(DOCUMENT_TYPES[0]);
+  const [period, setPeriod] = useState("");
+  const [link, setLink] = useState("");
+  const [err, setErr] = useState("");
+
+  const fromTask = useMemo(() => tasks
+    .filter(t=>t.client===client && DOC_TASK_CATEGORIES.includes(t.category) && t.link)
+    .sort((a,b)=>(b.lastUpdate||"").localeCompare(a.lastUpdate||"")), [tasks, client]);
+  const manual = useMemo(() => documents
+    .filter(d=>d.client===client
+      && (!typeFilter || d.docType===typeFilter)
+      && (!q || (d.title||"").toLowerCase().includes(q.toLowerCase())))
+    .sort((a,b)=>(b.period||b.addedAt||"").localeCompare(a.period||a.addedAt||"")), [documents, client, typeFilter, q]);
+
+  async function submit(){
+    setErr("");
+    if(!title.trim()){ setErr("Judul belum diisi."); return; }
+    if(!safeUrl(link)){ setErr("Link tidak valid. Pakai alamat lengkap, contoh: https://drive.google.com/..."); return; }
+    const ok = await onAddDocument({ client, title: title.trim(), docType, period: period.trim(), link: link.trim(), addedBy: myName });
+    if(ok){ setTitle(""); setPeriod(""); setLink(""); setShowAdd(false); }
+  }
+
+  return (
+    <div>
+      <button className="btn btn-outline btn-sm" onClick={onBack}>← Semua Brand</button>
+      <div className="section-title" style={{marginTop:10}}>{client}</div>
+
+      <div className="section-title" style={{fontSize:13}}>Dari Task ({fromTask.length})</div>
+      {fromTask.length===0 && <div style={{fontSize:12,color:"var(--grey)",marginBottom:10}}>Belum ada task Strategy/Website/Content Brief/Report yang punya link.</div>}
+      {fromTask.map(t => (
+        <div key={t.id} className="card">
+          <div style={{fontSize:11,color:"var(--gold)",fontWeight:800}}>{t.category}</div>
+          <div style={{fontSize:13,fontWeight:700,margin:"3px 0"}}>{taskTitle(t)}</div>
+          <ExternalLink href={t.link} style={{fontSize:12,color:"var(--brand-deep)",wordBreak:"break-all"}}>{t.link}</ExternalLink>
+        </div>
+      ))}
+
+      <div className="section-title" style={{fontSize:13}}>Dokumen Lain ({manual.length})</div>
+      <div className="filter-row">
+        <input placeholder="Cari judul..." value={q} onChange={e=>setQ(e.target.value)} style={{flex:1}} />
+        <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}>
+          <option value="">Semua Jenis</option>
+          {DOCUMENT_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+      {manual.map(d => (
+        <div key={d.id} className="card">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+            <div style={{minWidth:0}}>
+              <span className="badge badge-grey">{d.docType}</span>
+              <div style={{fontSize:13,fontWeight:700,margin:"5px 0 2px"}}>{d.title}</div>
+              {d.period && <div style={{fontSize:11,color:"var(--grey)"}}>{d.period}</div>}
+              <ExternalLink href={d.link} style={{fontSize:12,color:"var(--brand-deep)",wordBreak:"break-all"}}>{d.link}</ExternalLink>
+              <div style={{fontSize:10,color:"var(--grey)",marginTop:4}}>Ditambahkan {d.addedBy} · {fmtDate((d.addedAt||"").slice(0,10))}</div>
+            </div>
+            {isAdmin && <button className="btn btn-outline btn-sm" disabled={busy} onClick={()=>onDeleteDocument(d.id)}>Hapus</button>}
+          </div>
+        </div>
+      ))}
+      {manual.length===0 && <div className="empty">Belum ada dokumen manual untuk client ini.</div>}
+
+      {!showAdd && <button className="btn btn-gold btn-sm" onClick={()=>setShowAdd(true)}>+ Tambah Dokumen</button>}
+      {showAdd && (
+        <div className="card">
+          {err && <div className="login-error">{err}</div>}
+          <div className="field">
+            <label htmlFor="d-title">Judul</label>
+            <input id="d-title" value={title} onChange={e=>setTitle(e.target.value)} placeholder="mis. Report Maret 2026" />
+          </div>
+          <div className="row2">
+            <div className="field">
+              <label htmlFor="d-type">Jenis</label>
+              <select id="d-type" value={docType} onChange={e=>setDocType(e.target.value)}>
+                {DOCUMENT_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="d-period">Periode (opsional)</label>
+              <input id="d-period" value={period} onChange={e=>setPeriod(e.target.value)} placeholder="mis. 2026-03" />
+            </div>
+          </div>
+          <div className="field">
+            <label htmlFor="d-link">Link Drive</label>
+            <input id="d-link" value={link} onChange={e=>setLink(e.target.value)} placeholder="https://drive.google.com/..." />
+          </div>
+          <div className="modal-actions">
+            <button className="btn btn-outline" onClick={()=>{setShowAdd(false); setErr("");}}>Batal</button>
+            <button className="btn btn-gold" onClick={submit} disabled={busy}>Simpan</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===================== SIAP POSTING ===================== */
+function ReadyToPostView({tasks, onOpenTask}){
+  const today = todayStr();
+  const ready = useMemo(() => tasks.filter(t => t.status==="Ready to Post")
+    .sort((a,b)=> (a.postingDate||"9999").localeCompare(b.postingDate||"9999")), [tasks]);
+
+  function postingState(t){
+    if(!t.postingDate) return { badge:{label:"Tanpa target", cls:"badge-grey"}, spine:"" };
+    const diff = daysBetween(today, t.postingDate);
+    if(diff < 0)  return { badge:{label:`Telat ${Math.abs(diff)} hari`, cls:"badge-red"},  spine:" sp-late" };
+    if(diff === 0)return { badge:{label:"Posting hari ini", cls:"badge-purple"},           spine:" sp-post" };
+    if(diff <= 2) return { badge:{label:`${diff} hari lagi`, cls:"badge-yellow"},          spine:" sp-soon" };
+    return { badge:{label:fmtDate(t.postingDate), cls:"badge-grey"}, spine:"" };
+  }
+
+  return (
+    <div>
+      {ready.length===0 && <div className="empty">Belum ada konten yang siap posting.</div>}
+      {ready.map(t => {
+        const st = postingState(t);
+        return (
+          <div key={t.id} className={"card" + st.spine}>
+            <div onClick={()=>onOpenTask(t)} style={{cursor:"pointer"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                <div className="client-line">{t.client}</div>
+                <span className={"badge " + st.badge.cls} style={{flexShrink:0}}>{st.badge.label}</span>
+              </div>
+              <div className="task-title">{taskTitle(t)}</div>
+              <div className="meta-line" style={{marginBottom:11}}>
+                {t.postingDate ? `Target tayang ${fmtDate(t.postingDate)}` : "Belum ada target tayang"}
+              </div>
+            </div>
+
+            {t.previewLink ? (
+              <div className="stack">
+                <div className="eyebrow">Preview — ini yang diposting</div>
+                <ExternalLink href={t.previewLink}
+                  style={{fontSize:12.5,color:"var(--brand)",wordBreak:"break-all",fontWeight:560,textDecoration:"none"}}>
+                  {t.previewLink}
+                </ExternalLink>
+              </div>
+            ) : (
+              <div className="locked-note">Belum ada link preview — minta PM/CS meng-compile dulu.</div>
+            )}
+
+            <details style={{marginTop:2}}>
+              <summary style={{fontSize:11.5,color:"var(--ink-3)",cursor:"pointer"}}>Lihat file asli &amp; brief</summary>
+              <div style={{paddingTop:7}}>
+                {t.link && <div style={{fontSize:11.5,marginBottom:4}}>File kerjaan: <ExternalLink href={t.link} style={{color:"var(--ink-3)"}}>{t.link}</ExternalLink></div>}
+                {t.briefLink && <div style={{fontSize:11.5,marginBottom:4}}>Brief: <ExternalLink href={t.briefLink} style={{color:"var(--ink-3)"}}>{t.briefLink}</ExternalLink></div>}
+                {t.caption && <div style={{fontSize:11.5,color:"var(--ink-3)",marginTop:4,whiteSpace:"pre-wrap"}}>Caption lama: {t.caption}</div>}
+              </div>
+            </details>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ===================== RIWAYAT ===================== */
+function PostingHistoryView({tasks, projectNames, dailyLog, onSaveDailyLog, isAdmin, onDeleteDailyLog, busy}){
+  const [client, setClient] = useState("");
+  const [month, setMonth] = useState(todayStr().slice(0,7));
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [waOpen, setWaOpen] = useState(false);
+  const [copyMsg, setCopyMsg] = useState("");
+
+  const content = useMemo(() => tasks.filter(t => isPostableTask(t) && t.status==="Done" && t.postedAt
+    && (t.postedAt||"").slice(0,7)===month && (!client || t.client===client)), [tasks, month, client]);
+  const logEntries = useMemo(() => dailyLog
+    .filter(d => (d.date||"").slice(0,7)===month && (!client || d.client===client))
+    .sort((a,b)=>(b.date||"").localeCompare(a.date||"")), [dailyLog, month, client]);
+
+  // Ringkasan bulanan — angka inilah yang biasanya ditanya client.
+  const summary = useMemo(() => {
+    let leads = 0, spend = 0, cplSum = 0, cplCount = 0, campaigns = 0;
+    logEntries.forEach(e => (e.campaigns||[]).forEach(c => {
+      leads += Number(c.totalLeads)||0;
+      spend += Number(c.budgetUsed)||0;
+      if(Number(c.costPerLead)>0){ cplSum += Number(c.costPerLead); cplCount += 1; }
+      campaigns += 1;
+    }));
+    return { leads, spend, avgCpl: cplCount ? Math.round(cplSum/cplCount) : 0, campaigns };
+  }, [logEntries]);
+
+  // Teks WA mengikuti tanggal terbaru yang ada di filter aktif, bukan selalu hari ini.
+  const waDate = logEntries.length ? logEntries[0].date : todayStr();
+  const waEntries = useMemo(() => logEntries.filter(e => e.date === waDate), [logEntries, waDate]);
+  const waText = useMemo(() => buildDailyWAText(waDate, waEntries), [waDate, waEntries]);
+
+  function copyWA(){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(waText)
+        .then(()=>setCopyMsg("Tersalin. Tinggal tempel di WhatsApp."))
+        .catch(()=>setCopyMsg("Salin otomatis gagal — pilih teksnya manual di bawah."));
+    } else {
+      setCopyMsg("Salin otomatis tidak tersedia — pilih teksnya manual di bawah.");
+    }
+    setWaOpen(true);
+  }
+
+  return (
+    <div>
+      <div className="card" style={{background:"var(--brand-gradient)",color:"#fff"}}>
+        <div style={{fontWeight:800,fontSize:14,marginBottom:4}}>Log Harian Ads</div>
+        <div style={{fontSize:12,opacity:.92}}>Ganti kebiasaan ketik manual di WA — isi angka ads di sini, kapan saja, untuk client mana saja.</div>
+        <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
+          <button className="btn" style={{background:"#fff",color:"var(--brand-deep)"}} onClick={()=>setShowLogModal(true)}>+ Update Ads</button>
+          <button className="btn" style={{background:"transparent",color:"#fff",border:"1px solid #fff"}} onClick={copyWA}>Salin ke WA</button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="row2">
+          <div className="field" style={{marginBottom:0}}>
+            <label htmlFor="h-client">Client</label>
+            <select id="h-client" value={client} onChange={e=>setClient(e.target.value)}>
+              <option value="">Semua Client</option>
+              {projectNames.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="field" style={{marginBottom:0}}>
+            <label htmlFor="h-month">Bulan</label>
+            <input id="h-month" type="month" value={month} onChange={e=>setMonth(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      {summary.campaigns > 0 && (
+        <div className="card">
+          <div className="section-title">Ringkasan Bulan Ini</div>
+          <div className="kpi-grid" style={{marginBottom:0}}>
+            <div className="kpi k-brand" style={{cursor:"default"}}>
+              <div className="num">{summary.leads}</div><div className="lbl">Total leads</div></div>
+            <div className="kpi k-soon" style={{cursor:"default"}}>
+              <div className="num" style={{fontSize:19,letterSpacing:"-.5px"}}>{fmtIDR(summary.avgCpl)}</div><div className="lbl">Rata-rata CPL</div></div>
+            <div className="kpi" style={{cursor:"default"}}>
+              <div className="num" style={{fontSize:19,letterSpacing:"-.5px"}}>{fmtIDR(summary.spend)}</div><div className="lbl">Budget terpakai</div></div>
+          </div>
+        </div>
+      )}
+
+      <div className="section-title">Log Harian Ads ({logEntries.length})</div>
+      {logEntries.length===0 && <div className="empty">Belum ada update harian di periode ini.</div>}
+      {logEntries.map(entry => {
+        const camps = entry.campaigns || [];
+        return (
+          <div key={entry.id} className="card">
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,alignItems:"center"}}>
+              <span style={{fontSize:11,color:"var(--gold)",fontWeight:800}}>{entry.client}</span>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <span style={{fontSize:11,color:"var(--grey)"}}>{fmtDate(entry.date)}</span>
+                {isAdmin && <button className="btn btn-outline btn-sm" disabled={busy} onClick={()=>onDeleteDailyLog(entry.id)}>Hapus</button>}
+              </div>
+            </div>
+            {camps.map((c,i) => (
+              <div key={i} style={{fontSize:12,marginBottom:5,paddingBottom:5,borderBottom: i<camps.length-1 ? "1px dashed var(--line)" : "none"}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,gap:8}}>
+                  <span>{c.name || "(tanpa nama)"}{c.active===false ? " — OFF" : ""}</span>
+                  <span style={{color:"var(--grey)",fontWeight:400,whiteSpace:"nowrap"}}>{c.endDate ? daysLeftLabel(c.endDate) : ""}</span>
+                </div>
+                <div style={{color:"var(--grey)"}}>
+                  CPL {fmtIDR(c.costPerLead)} · {c.totalLeads||0} Leads
+                  {(c.budgetUsed||c.totalBudget) ? ` · Budget ${fmtIDR(c.budgetUsed)} / ${fmtIDR(c.totalBudget)}` : ""}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+
+      <div className="section-title">Konten Tayang ({content.length})</div>
+      {content.length===0 && <div className="empty">Belum ada konten yang tayang di periode ini.</div>}
+      {content.map(t => (
+        <div key={t.id} className="card">
+          <div style={{fontSize:11,color:"var(--gold)",fontWeight:800}}>{t.client}</div>
+          <div style={{fontSize:13,fontWeight:700,margin:"3px 0"}}>{taskTitle(t)}</div>
+          <div style={{fontSize:11,color:"var(--grey)",marginBottom:4}}>
+            Tayang {fmtDate(t.postedAt)}
+            {t.postingDate && (() => {
+              const late = daysBetween(t.postingDate, t.postedAt);
+              return late > 0
+                ? <span className="badge badge-red" style={{marginLeft:6}}>TELAT {late} HARI</span>
+                : <span className="badge badge-green" style={{marginLeft:6}}>TEPAT WAKTU</span>;
+            })()}
+          </div>
+          {t.livePostLink && <ExternalLink href={t.livePostLink} style={{fontSize:12,color:"var(--brand)",wordBreak:"break-all"}}>{t.livePostLink}</ExternalLink>}
+          {t.previewLink && (
+            <div style={{fontSize:11,marginTop:4}}>
+              Preview: <ExternalLink href={t.previewLink} style={{color:"var(--grey)",wordBreak:"break-all"}}>{t.previewLink}</ExternalLink>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {showLogModal && (
+        <DailyLogModal projectNames={projectNames} dailyLog={dailyLog}
+          onSave={onSaveDailyLog} onClose={()=>setShowLogModal(false)} defaultClient={client} busy={busy} />
+      )}
+
+      {waOpen && (
+        <div className="modal-bg" onMouseDown={e=>{ if(e.target===e.currentTarget) setWaOpen(false); }}>
+          <div className="modal">
+            <div className="section-title">Format WA — {fmtDate(waDate)}</div>
+            {copyMsg && <div style={{fontSize:12,color:"var(--green)",marginBottom:8,fontWeight:700}}>{copyMsg}</div>}
+            {waEntries.length===0 && <div className="locked-note">Belum ada log di periode yang dipilih.</div>}
+            <textarea readOnly rows="16" value={waText}
+              style={{width:"100%",padding:10,border:"1px solid var(--line)",borderRadius:8,fontSize:12,fontFamily:"monospace"}}
+              onFocus={e=>e.target.select()} />
+            <div className="modal-actions">
+              <button className="btn btn-gold" style={{width:"100%"}} onClick={()=>setWaOpen(false)}>Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DailyLogModal({projectNames, dailyLog, onSave, onClose, defaultClient, busy}){
+  const [client, setClient] = useState(defaultClient || "");
+  const [date, setDate] = useState(todayStr());
+  const [err, setErr] = useState("");
+  const existing = dailyLog.find(d => d.date===date && d.client===client);
+
+  const [rows, setRows] = useState([emptyAdLogRow()]);
+  useEffect(() => {
+    const found = dailyLog.find(d => d.date===date && d.client===client);
+    setRows((found && Array.isArray(found.campaigns) && found.campaigns.length)
+      ? found.campaigns.map(c=>({...emptyAdLogRow(), ...c, _id: uid()}))
+      : [emptyAdLogRow()]);
+  }, [client, date, dailyLog]);
+
+  function setRow(i,k,v){ setRows(r => r.map((row,idx)=> idx===i ? {...row,[k]:v} : row)); }
+  function addRow(){ setRows(r => [...r, emptyAdLogRow()]); }
+  function removeRow(i){ setRows(r => r.length>1 ? r.filter((_,idx)=>idx!==i) : r); }
+
+  async function submit(){
+    setErr("");
+    if(!client){ setErr("Pilih client dulu."); return; }
+    if(!date){ setErr("Pilih tanggal dulu."); return; }
+    const campaigns = rows.filter(r=>(r.name||"").trim() || r.costPerLead || r.totalLeads)
+      .map(r=>({ name:(r.name||"").trim(), costPerLead:Math.max(0,Number(r.costPerLead)||0),
+        totalLeads:Math.max(0,Number(r.totalLeads)||0), budgetUsed:Math.max(0,Number(r.budgetUsed)||0),
+        totalBudget:Math.max(0,Number(r.totalBudget)||0), endDate:r.endDate||"", active:r.active!==false }));
+    if(campaigns.length===0){ setErr("Isi minimal 1 campaign."); return; }
+    const ok = await onSave(client, date, campaigns);
+    if(ok) onClose();
+  }
+
+  return (
+    <div className="modal-bg" onMouseDown={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className="modal">
+        <div className="section-title">Update Ads</div>
+        {err && <div className="login-error">{err}</div>}
+        <div className="row2">
+          <div className="field">
+            <label htmlFor="dl-client">Client</label>
+            <select id="dl-client" value={client} onChange={e=>setClient(e.target.value)}>
+              <option value="">Pilih client</option>
+              {projectNames.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="dl-date">Tanggal</label>
+            <input id="dl-date" type="date" value={date} max={todayStr()} onChange={e=>setDate(e.target.value)} />
+          </div>
+        </div>
+        {existing && <div className="locked-note">Sudah ada update untuk {client} di tanggal ini — isian di bawah otomatis terisi datanya. Simpan lagi untuk memperbarui.</div>}
+
+        {rows.map((r,i) => (
+          <div key={r._id} style={{background:"var(--offwhite)",borderRadius:8,padding:10,marginBottom:8}}>
+            <div style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:6}}>
+              <input value={r.name} onChange={e=>setRow(i,"name",e.target.value)} placeholder={`Nama campaign #${i+1}`}
+                style={{flex:1,padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}} />
+              {rows.length>1 && <button className="btn btn-outline btn-sm" onClick={()=>removeRow(i)}>Hapus</button>}
+            </div>
+            <div className="row2" style={{marginBottom:6}}>
+              <input type="number" min="0" placeholder="Cost per Lead (IDR)" value={r.costPerLead} onChange={e=>setRow(i,"costPerLead",e.target.value)}
+                style={{padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}} />
+              <input type="number" min="0" placeholder="Total Leads" value={r.totalLeads} onChange={e=>setRow(i,"totalLeads",e.target.value)}
+                style={{padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}} />
+            </div>
+            <div className="row2" style={{marginBottom:6}}>
+              <input type="number" min="0" placeholder="Budget Terpakai" value={r.budgetUsed} onChange={e=>setRow(i,"budgetUsed",e.target.value)}
+                style={{padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}} />
+              <input type="number" min="0" placeholder="Total Budget" value={r.totalBudget} onChange={e=>setRow(i,"totalBudget",e.target.value)}
+                style={{padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}} />
+            </div>
+            <div className="row2" style={{alignItems:"center"}}>
+              <div>
+                <label style={{fontSize:11,color:"var(--grey)"}} htmlFor={"ed-"+r._id}>Tanggal Berakhir</label>
+                <input id={"ed-"+r._id} type="date" value={r.endDate} onChange={e=>setRow(i,"endDate",e.target.value)}
+                  style={{width:"100%",padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}} />
+              </div>
+              <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,fontWeight:400,marginTop:16}}>
+                <input type="checkbox" style={{width:"auto"}} checked={r.active!==false} onChange={e=>setRow(i,"active",e.target.checked)} />
+                Aktif (hilangkan centang kalau OFF)
+              </label>
+            </div>
+          </div>
+        ))}
+        <button className="btn btn-outline btn-sm" onClick={addRow}>+ Tambah Campaign</button>
+
+        <div className="modal-actions">
+          <button className="btn btn-outline" onClick={onClose}>Batal</button>
+          <button className="btn btn-gold" onClick={submit} disabled={busy}>{busy ? "Menyimpan..." : "Simpan"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===================== DASHBOARD ===================== */
+function Dashboard({tasks, connected, staffNames, onNavigate, myName, onOpenTask, canSeeWorkload, canApprove}){
+  const today = todayStr();
+  // Hitung flag sekali per task, bukan berulang di tiap filter.
+  const flagged = useMemo(() => tasks.map(t => ({ t, flag: getFlag(t, today).label })), [tasks, today]);
+
+  const stats = useMemo(() => {
+    const activeList = flagged.filter(x => x.t.status !== "Done");
+    const thisMonth = today.slice(0,7);
+    return {
+      active: activeList.length,
+      mine: activeList.filter(x => taskPeople(x.t).includes(myName)).length,
+      overdue: activeList.filter(x => x.flag==="OVERDUE").length,
+      dueSoon: activeList.filter(x => x.flag==="DUE SOON").length,
+      inProgress: activeList.filter(x => x.t.status==="In Progress").length,
+      // Pakai completedAt, bukan lastUpdate — supaya task lama yang diedit tidak ikut terhitung.
+      doneThisMonth: flagged.filter(x => x.t.status==="Done" && (x.t.completedAt||"").slice(0,7)===thisMonth).length,
+    };
+  }, [flagged, myName, today]);
+
+  const myTasks = useMemo(() => flagged
+    .filter(x => x.t.status!=="Done" && taskPeople(x.t).includes(myName))
+    .sort((a,b)=>(a.t.dueDate||"9999").localeCompare(b.t.dueDate||"9999"))
+    .slice(0,6), [flagged, myName]);
+
+  const waitingReview = useMemo(() => tasks.filter(t => t.status==="Waiting Review"), [tasks]);
+  const waitingClient = useMemo(() => tasks.filter(t => t.status==="Menunggu Approval Klien"), [tasks]);
+  // Approved + postable tapi preview kosong = belum di-compile, atau dikembalikan Operations.
+  const needCompile = useMemo(() => tasks.filter(t =>
+    t.status==="Approved" && isPostableTask(t) && !t.previewLink), [tasks]);
+  const revisionForMe = useMemo(() => tasks.filter(t => t.status==="Revision" && myName
+    && (taskPeople(t).includes(myName)
+        || (t.deliverables||[]).some(d => d.state==="revision" && d.pic===myName))), [tasks, myName]);
+
+  const workload = useMemo(() => {
+    if(!canSeeWorkload) return {};
+    const map = {};
+    staffNames.forEach(p => map[p] = { active:0, overdue:0, dueSoon:0, highPriority:0 });
+    flagged.forEach(({t, flag}) => {
+      const people = taskPeople(t);
+      if(t.status==="Done" || !people.length) return;
+      people.forEach(pic => {
+        const w = map[pic];
+        if(!w) return;
+        w.active += 1;
+        if(flag === "OVERDUE") w.overdue += 1;
+        if(flag === "DUE SOON") w.dueSoon += 1;
+        if(t.anyHighPriority) w.highPriority += 1;
+      });
+    });
+    return map;
+  }, [flagged, staffNames, canSeeWorkload]);
+
+  function workloadLevel(w){
+    if(w.overdue > 0 || w.highPriority >= 3) return {label:"Overload", bg:"var(--late-bg)", txt:"var(--late)"};
+    if(w.active >= 5 || w.highPriority >= 2 || w.dueSoon >= 2) return {label:"Mulai padat", bg:"var(--soon-bg)", txt:"var(--soon)"};
+    return {label:"Wajar", bg:"var(--ok-bg)", txt:"var(--ok)"};
+  }
+
+  return (
+    <div>
+      <div style={{fontSize:12,color:"var(--grey)",marginBottom:10}}>
+        <span className="conn-dot" style={{background: connected ? "#1E7B4D":"#B3261E"}}></span>
+        {connected ? "Tersambung — data live untuk semua tim" : "Belum tersambung"}
+      </div>
+
+      {(waitingReview.length>0 || waitingClient.length>0 || needCompile.length>0 || revisionForMe.length>0) && (
+        <div className="card" style={{background:"var(--brand-gradient)",color:"#fff"}}>
+          {canApprove && waitingReview.length>0 && (
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,gap:8}}>
+              <div style={{fontSize:13,fontWeight:700}}>{waitingReview.length} task menunggu review</div>
+              <button className="btn btn-sm" style={{background:"#fff",color:"var(--brand-deep)"}} onClick={()=>onNavigate("review")}>Lihat</button>
+            </div>
+          )}
+          {canApprove && waitingClient.length>0 && (
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,gap:8}}>
+              <div style={{fontSize:13,fontWeight:700}}>{waitingClient.length} menunggu konfirmasi client</div>
+              <button className="btn btn-sm" style={{background:"#fff",color:"var(--brand-deep)"}} onClick={()=>waitingClient[0] && onOpenTask(waitingClient[0])}>Buka</button>
+            </div>
+          )}
+          {canApprove && needCompile.length>0 && (
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,gap:8}}>
+              <div style={{fontSize:13,fontWeight:700}}>{needCompile.length} perlu di-compile jadi preview</div>
+              <button className="btn btn-sm" style={{background:"#fff",color:"var(--brand-deep)"}} onClick={()=>needCompile[0] && onOpenTask(needCompile[0])}>Buka</button>
+            </div>
+          )}
+          {revisionForMe.length>0 && (
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+              <div style={{fontSize:13,fontWeight:700}}>{revisionForMe.length} revisi untuk kamu</div>
+              <button className="btn btn-sm" style={{background:"#fff",color:"var(--brand-deep)"}} onClick={()=>revisionForMe[0] && onOpenTask(revisionForMe[0])}>Buka</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="card">
+        <div className="section-title">Task saya ({stats.mine})</div>
+        {myTasks.length===0 && <div style={{color:"var(--grey)",fontSize:13}}>Tidak ada task aktif untuk kamu.</div>}
+        {myTasks.map(({t}) => {
+          const urg = urgencyBadge(t, today);
+          return (
+            <button key={t.id} className="manage-row card-btn" style={{background:"none",padding:"10px 0"}} onClick={()=>onOpenTask(t)}>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:13.5,fontWeight:600}}>{taskTitle(t)}</div>
+                <div className="meta-line">{t.client} · Due {fmtDate(t.dueDate)}</div>
+              </div>
+              <span className={"badge " + (urg ? urg.cls : statusCls(t.status))} style={{flexShrink:0}}>
+                {urg ? urg.label : t.status}
+              </span>
+            </button>
+          );
+        })}
+        {stats.mine > myTasks.length && (
+          <button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>onNavigate("mine")}>
+            Lihat semua {stats.mine} task saya
+          </button>
+        )}
+      </div>
+
+      <div className="kpi-grid">
+        <button className="kpi" onClick={()=>onNavigate("all")}>
+          <div className="num">{stats.active}</div><div className="lbl">Task aktif</div></button>
+        <button className="kpi k-late" onClick={()=>onNavigate("overdue")}>
+          <div className="num">{stats.overdue}</div><div className="lbl">Overdue</div></button>
+        <button className="kpi k-soon" onClick={()=>onNavigate("duesoon")}>
+          <div className="num">{stats.dueSoon}</div><div className="lbl">Due soon</div></button>
+        <button className="kpi k-brand" onClick={()=>onNavigate("inprogress")}>
+          <div className="num">{stats.inProgress}</div><div className="lbl">Dikerjakan</div></button>
+        {canSeeWorkload && (
+          <div className="kpi k-ok" style={{cursor:"default"}}>
+            <div className="num">{stats.doneThisMonth}</div><div className="lbl">Selesai bulan ini</div></div>
+        )}
+      </div>
+
+      {canSeeWorkload && (
+        <div className="card">
+          <div className="section-title">Workload per orang</div>
+          {staffNames.filter(p=>workload[p] && workload[p].active>0)
+            .sort((a,b)=>workload[b].active-workload[a].active)
+            .map(p => {
+              const w = workload[p];
+              const lv = workloadLevel(w);
+              const reasons = [];
+              if(w.overdue>0) reasons.push(`${w.overdue} overdue`);
+              if(w.highPriority>0) reasons.push(`${w.highPriority} high priority`);
+              if(w.dueSoon>0) reasons.push(`${w.dueSoon} due soon`);
+              return (
+                <div key={p} className="manage-row">
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700}}>{p} <span style={{fontWeight:400,color:"var(--grey)"}}>· {w.active} task</span></div>
+                    {reasons.length>0 && <div style={{fontSize:10.5,color:"var(--grey)"}}>{reasons.join(" · ")}</div>}
+                  </div>
+                  <span className="badge" style={{background:lv.bg,color:lv.txt,flexShrink:0}}>{lv.label}</span>
+                </div>
+              );
+            })}
+          {staffNames.every(p=>!workload[p] || workload[p].active===0) && <div style={{color:"var(--grey)",fontSize:13}}>Belum ada task aktif.</div>}
+          <div style={{fontSize:10,color:"var(--grey)",marginTop:10,fontStyle:"italic"}}>
+            OVERLOAD = ada task overdue, atau ≥3 task High priority bersamaan. MULAI PADAT = ≥5 task aktif, atau ≥2 High priority / due soon.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===================== TASK LIST ===================== */
+function TaskList({tasks, archivedTasks, onEdit, onDelete, onCancel, onRestore, canCancel, isAdmin, staffNames, projectNames,
+  filterPic, setFilterPic, filterStatus, setFilterStatus, filterFlag, setFilterFlag, filterClient, setFilterClient}){
+  const [q, setQ] = useState("");
+  const [sortBy, setSortBy] = useState("terbaru");   // terbaru | deadline
+  const [dateMode, setDateMode] = useState("all");   // all | today | yesterday | pick
+  const [pickDate, setPickDate] = useState(todayStr());
+  const [showDone, setShowDone] = useState(false);
+
+  const today = todayStr();
+  const yesterday = useMemo(() => {
+    const d = new Date(today+"T00:00:00"); d.setDate(d.getDate()-1); return toLocalISO(d);
+  }, [today]);
+  const targetDate = dateMode==="today" ? today : dateMode==="yesterday" ? yesterday : dateMode==="pick" ? pickDate : null;
+
+  const filtered = useMemo(() => {
+    const key = q.trim().toLowerCase();
+    const list = tasks.filter(t => {
+      if(!showDone && t.status==="Done") return false;
+      if(filterPic && !taskPeople(t).includes(filterPic)) return false;
+      if(filterClient && t.client!==filterClient) return false;
+      if(filterStatus && t.status!==filterStatus) return false;
+      if(filterFlag && getFlag(t, today).label!==filterFlag) return false;
+      if(targetDate && (t.createdAt||"") !== targetDate) return false;
+      if(key){
+        const hay = [t.client, t.category, t.status, t.pics.join(" "), t.notes,
+          ...t.subtasks.map(s=>s.description)].join(" ").toLowerCase();
+        if(!hay.includes(key)) return false;
+      }
+      return true;
+    });
+    if(sortBy === "deadline"){
+      list.sort((a,b)=>(a.dueDate||"9999").localeCompare(b.dueDate||"9999"));
+    } else {
+      // Task lama belum punya createdAt — dikelompokkan di bawah, tidak hilang.
+      list.sort((a,b)=>(b.createdAt||"0000").localeCompare(a.createdAt||"0000"));
+    }
+    return list;
+  }, [tasks, q, filterPic, filterClient, filterStatus, filterFlag, targetDate, sortBy, showDone, today]);
+
+  const noCreatedAt = useMemo(() => targetDate ? tasks.filter(t=>!t.createdAt && t.status!=="Done").length : 0, [tasks, targetDate]);
+
+  return (
+    <div>
+      {filterFlag && (
+        <div style={{background:"var(--brand-deep)",color:"#fff",borderRadius:8,padding:"7px 12px",marginBottom:10,
+          fontSize:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span>Filter aktif: <b>{filterFlag}</b></span>
+          <button className="logout-btn" onClick={()=>setFilterFlag("")}>Hapus</button>
+        </div>
+      )}
+
+      <div className="filter-row">
+        <input placeholder="Cari task, client, PIC..." value={q} onChange={e=>setQ(e.target.value)} style={{flex:1,minWidth:150}} />
+      </div>
+
+      <div className="chips">
+        <button className={"chip"+(sortBy==="terbaru"?" on":"")} onClick={()=>setSortBy("terbaru")}>Terbaru</button>
+        <button className={"chip"+(sortBy==="deadline"?" on":"")} onClick={()=>setSortBy("deadline")}>Deadline</button>
+        <span style={{width:8}}></span>
+        <button className={"chip"+(dateMode==="all"?" on":"")} onClick={()=>setDateMode("all")}>Semua</button>
+        <button className={"chip"+(dateMode==="today"?" on":"")} onClick={()=>setDateMode("today")}>Hari Ini</button>
+        <button className={"chip"+(dateMode==="yesterday"?" on":"")} onClick={()=>setDateMode("yesterday")}>Kemarin</button>
+        <button className={"chip"+(dateMode==="pick"?" on":"")} onClick={()=>setDateMode("pick")}>Pilih Tanggal</button>
+      </div>
+
+      {dateMode==="pick" && (
+        <div className="field">
+          <label htmlFor="pick-d">Task yang dibuat tanggal</label>
+          <input id="pick-d" type="date" value={pickDate} onChange={e=>setPickDate(e.target.value)} />
+        </div>
+      )}
+      {targetDate && noCreatedAt>0 && (
+        <div className="locked-note">{noCreatedAt} task lama belum punya catatan tanggal dibuat, jadi tidak muncul di filter tanggal. Pilih "Semua" untuk melihatnya.</div>
+      )}
+
+      <div className="filter-row">
+        <select value={filterPic} onChange={e=>setFilterPic(e.target.value)}>
+          <option value="">Semua PIC</option>
+          {staffNames.map(p=><option key={p} value={p}>{p}</option>)}
+        </select>
+        <select value={filterClient} onChange={e=>setFilterClient(e.target.value)}>
+          <option value="">Semua Client</option>
+          {projectNames.map(c=><option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
+          <option value="">Semua Status</option>
+          {STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+
+      <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"var(--grey)",marginBottom:12}}>
+        <input type="checkbox" style={{width:"auto"}} checked={showDone} onChange={e=>setShowDone(e.target.checked)} />
+        Tampilkan juga yang sudah selesai
+      </label>
+
+      {filtered.length===0 && <div className="empty">Tidak ada task yang cocok dengan filter ini.</div>}
+      {canCancel && archivedTasks.length>0 && (
+        <details style={{marginTop:16}}>
+          <summary style={{fontSize:12,color:"var(--ink-3)",cursor:"pointer",padding:"6px 0"}}>
+            Task dibatalkan ({archivedTasks.length})
+          </summary>
+          <div style={{paddingTop:8}}>
+            <div className="locked-note">Hapus permanen cuma ada di sini — supaya task aktif tidak bisa terhapus karena salah pencet.</div>
+            {archivedTasks.map(t => (
+              <div key={t.id} className="card" style={{opacity:.72}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+                  <div style={{minWidth:0}}>
+                    <div className="client-line">{t.client} · {t.category}</div>
+                    <div className="task-title">{taskTitle(t)}</div>
+                  </div>
+                  <div style={{display:"flex",gap:6,flexShrink:0}}>
+                    <button className="btn btn-outline btn-sm" onClick={()=>onRestore(t.id)}>Aktifkan lagi</button>
+                    <button className="btn btn-outline btn-sm" style={{color:"var(--late)"}}
+                      onClick={()=>onDelete(t.id, taskTitle(t))}>Hapus permanen</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+      {filtered.map(t => {
+        const urg = urgencyBadge(t, today);
+        return (
+          <div key={t.id} className={"card" + spineCls(t, today)}>
+            <div onClick={()=>onEdit(t)} style={{cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div className="client-line">{t.client} · {t.category}</div>
+                <div className="task-title">
+                  {taskTitle(t)}
+                  {t.subtasks.length>1 && <span style={{color:"var(--ink-3)",fontWeight:400}}> +{t.subtasks.length-1} lagi</span>}
+                </div>
+                <div className="meta-line">
+                  {t.pics.length ? t.pics.join(", ") : "Belum ada PIC"} · Due {fmtDate(t.dueDate)} · {t.avgProgress}%
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:5,alignItems:"flex-end",flexShrink:0}}>
+                {urg && <span className={"badge " + urg.cls}>{urg.label}</span>}
+                <span className={"badge " + statusCls(t.status)}>{t.status}</span>
+                {t.overallPriority==="High" && <span className="badge badge-grey">High</span>}
+              </div>
+            </div>
+            {(isAdmin || canCancel) && (
+              <div style={{marginTop:10,display:"flex",justifyContent:"flex-end",gap:8}}>
+                {canCancel && <button className="btn btn-outline btn-sm" onClick={()=>onCancel(t)}>Batalkan</button>}
+                {isAdmin && <button className="btn btn-outline btn-sm"
+                  onClick={()=>onDelete(t.id, taskTitle(t))}>Hapus</button>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ===================== GAMBAR ===================== */
+function ImageBoard({taskId, kind, canEdit, onAdd, onRemove, busy, title, hint}){
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [working, setWorking] = useState(false);
+
+  // Diambil hanya saat modal dibuka, bukan ikut listener utama.
+  useEffect(() => {
+    if(!taskId) { setLoading(false); return; }
+    const unsub = db.collection(IMAGES_COLLECTION).doc(`${taskId}_${kind}`)
+      .onSnapshot(snap => {
+        setImages(snap.exists && Array.isArray(snap.data().images) ? snap.data().images : []);
+        setLoading(false);
+      }, e => { console.error(e); setLoading(false); });
+    return () => unsub();
+  }, [taskId, kind]);
+
+  async function pick(e){
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+    setErr(""); setWorking(true);
+    try{
+      if(!/^image\//.test(file.type)) throw new Error("File harus berupa gambar.");
+      const data = await compressImage(file);
+      await onAdd(taskId, kind, data, file.name.slice(0,40));
+    }catch(ex){ setErr(ex.message || "Gagal memproses gambar."); }
+    setWorking(false);
+  }
+
+  const totalBytes = images.reduce((n,i)=>n+(i.data||"").length, 0);
+
+  return (
+    <div className="stack">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:6}}>
+        <div style={{fontSize:12.5,fontWeight:620}}>{title}</div>
+        {images.length>0 && <span className="meta-line">{images.length}/{MAX_IMG_COUNT} · {fmtKB(totalBytes)}</span>}
+      </div>
+      {hint && <div className="locked-note" style={{margin:"0 0 8px"}}>{hint}</div>}
+      {err && <div className="login-error">{err}</div>}
+      {loading ? <div className="meta-line">Memuat gambar...</div> : (
+        <>
+          {images.map(img => (
+            <div key={img._id} style={{marginBottom:8}}>
+              <img src={img.data} alt={img.label||"Gambar"} style={{width:"100%",borderRadius:10,display:"block"}} />
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginTop:4}}>
+                <span className="meta-line">{img.by} · {fmtDate((img.at||"").slice(0,10))}</span>
+                {canEdit && <button className="btn btn-outline btn-sm" disabled={busy}
+                  onClick={()=>onRemove(taskId, kind, img._id)}>Hapus</button>}
+              </div>
+            </div>
+          ))}
+          {images.length===0 && <div className="meta-line">Belum ada gambar.</div>}
+          {canEdit && images.length < MAX_IMG_COUNT && (
+            <label className="btn btn-outline btn-sm" style={{display:"inline-block",marginTop:6,cursor:"pointer"}}>
+              {working ? "Memproses..." : "+ Tambah Gambar"}
+              <input type="file" accept="image/*" style={{display:"none"}} onChange={pick} disabled={working||busy} />
+            </label>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ===================== TASK MODAL ===================== */
+function activityLabel(type){
+  return { link:"Link", revision:"Revisi", approval:"Approve Internal", client_approval:"Client Approve",
+    client_revision:"Revisi Client", caption:"Caption", preview:"Preview", returned:"Dikembalikan",
+    cancelled:"Dibatalkan", restored:"Diaktifkan", posted:"Posting", comment:"Komentar", status:"Status" }[type] || type;
+}
+const BASIC_STATUSES = ["Not Started","In Progress","On Hold","Done"];
+
+function TaskModal({task, onClose, onSave, busy, isAdmin, myRole, myEmail, myName,
+  canApprove, canMarkPosted, allowedCategories, staffNames, staffList, projectNames, reviewerNames,
+  onSubmitDeliverable, onRequestRevisionOn, onRequestRevision, onApproveTask,
+  onClientApprove, onClientRevision, onSendToOperations, onMarkPosted,
+  onMarkDoneManual, onReturnToPM, onAddComment, onAddImage, onRemoveImage}){
+
+  const isExisting = !!task.id;
+  const [form, setForm] = useState(() => {
+    if(isExisting) return task;
+    // Role dengan satu kategori langsung dikunci ke kategori itu.
+    const cats = (allowedCategories && allowedCategories.length) ? allowedCategories : CATEGORIES;
+    const cat = cats.includes(task.category) ? task.category : cats[0];
+    return { ...task, category: cat };
+  });
+
+  // Ikut perubahan dari orang lain tanpa menimpa yang sedang diketik.
+  useEffect(() => {
+    if(!isExisting) return;
+    setForm(f => ({ ...f, status: task.status, activity: task.activity, version: task.version,
+      link: task.link, caption: task.caption, previewLink: task.previewLink,
+      deliverables: task.deliverables,
+      postingDate: task.postingDate, livePostLink: task.livePostLink,
+      postedAt: task.postedAt, internalApprovedBy: task.internalApprovedBy }));
+  }, [task.id, task.version, isExisting]);
+
+  const set = (k,v) => setForm(f => ({...f, [k]:v}));
+  function setCategory(v){
+    setForm(f => ({ ...f, category:v,
+      deliverables: isExisting ? f.deliverables : presetDeliverables(v) }));
+  }
+  // Pilihan PIC disaring sesuai job desk. Yang di luar job desk tetap bisa dipilih
+  // tapi dipisah ke grup "Lainnya", supaya tidak asal kepilih.
+  const roster = staffList || [];
+  function splitByRole(roles){
+    const want = roles && roles.length ? roles : null;
+    return {
+      fit:  want ? roster.filter(x => want.includes(x.role)) : roster,
+      rest: want ? roster.filter(x => !want.includes(x.role)) : [],
+    };
+  }
+  function PicSelect({value, roles, disabled, onChange, id}){
+    const { fit, rest } = splitByRole(roles);
+    return (
+      <>
+        <select id={id} value={value} onChange={onChange} disabled={disabled}
+          style={{width:"100%",padding:9,border:"1px solid var(--line)",borderRadius:9,fontSize:13.5,fontFamily:"inherit"}}>
+          <option value="">Belum ditentukan</option>
+          {fit.length>0 && (
+            <optgroup label="Sesuai job desk">
+              {fit.map(x=><option key={x.id} value={x.name}>{x.name} — {ROLES[x.role]||"-"}</option>)}
+            </optgroup>
+          )}
+          {rest.length>0 && (
+            <optgroup label="Lainnya (di luar job desk)">
+              {rest.map(x=><option key={x.id} value={x.name}>{x.name} — {ROLES[x.role]||"-"}</option>)}
+            </optgroup>
+          )}
+        </select>
+        {fit.length===0 && roles && roles.length>0 && (
+          <div className="locked-note" style={{margin:"5px 0 0"}}>
+            Belum ada staff aktif ber-job desk {roles.map(r=>ROLES[r]).join(" / ")}. Minta Admin mengaktifkan dulu.
+          </div>
+        )}
+      </>
+    );
+  }
+
+  const setDeliv = (i,k,v) => setForm(f => ({...f,
+    deliverables: f.deliverables.map((d,idx)=> idx===i ? {...d,[k]:v} : d)}));
+  const addDeliv = () => setForm(f => ({...f, deliverables:[...f.deliverables, emptyDeliverable("","")]}));
+  const removeDeliv = (i) => setForm(f => ({...f, deliverables: f.deliverables.filter((_,idx)=>idx!==i)}));
+  const structLocked = isExisting && !isAdmin;
+  const isPaidAds = form.category === "Paid Ads";
+  const isProduction = form.category === "Production";
+  const isReview = isReviewCategory(form.category);
+  const isContent = isPostableTask(form);
+  const isGraphicDesign = form.category === "Graphic Design";
+  const allowedCats = (allowedCategories && allowedCategories.length) ? allowedCategories : CATEGORIES;
+  const categoryOptions = isExisting ? CATEGORIES : allowedCats;
+  const singleCategory = !isExisting && allowedCats.length === 1;
+
+  // Aturan dua kepala: yang approve internal tidak boleh menutup gerbang client.
+  const iApprovedInternally = (form.internalApprovedBy||"").toLowerCase() === myEmail;
+  const canClientGate = isAdmin || (canApprove && !iApprovedInternally);
+
+  const [delivDraft, setDelivDraft] = useState({});
+  const [revTargets, setRevTargets] = useState([]);
+  const [reviewer, setReviewer] = useState(task.reviewerTarget || "");
+  const [reviewNote, setReviewNote] = useState("");
+  const [previewDraft, setPreviewDraft] = useState(task.previewLink || "");
+  const [postDateDraft, setPostDateDraft] = useState(task.postingDate || "");
+  const [liveLinkDraft, setLiveLinkDraft] = useState("");
+  const [commentDraft, setCommentDraft] = useState("");
+  const [returnNote, setReturnNote] = useState("");
+  const [showReturn, setShowReturn] = useState(false);
+  const [localErr, setLocalErr] = useState("");
+
+  function guardLink(v){
+    if(!safeUrl(v)){ setLocalErr("Link tidak valid. Pakai alamat lengkap, contoh: https://drive.google.com/..."); return false; }
+    setLocalErr(""); return true;
+  }
+  function togglePic(name){
+    setForm(f => ({ ...f, pics: f.pics.includes(name) ? f.pics.filter(p=>p!==name) : [...f.pics, name] }));
+  }
+  const setAdItem = (i,k,v) => setForm(f => ({...f, adItems: f.adItems.map((a,idx)=> idx===i ? {...a,[k]:v} : a)}));
+  const addAdItem = () => setForm(f => ({...f, adItems: [...f.adItems, emptyAdItem()]}));
+  const removeAdItem = (i) => setForm(f => f.adItems.length>1 ? {...f, adItems: f.adItems.filter((_,idx)=>idx!==i)} : f);
+
+  return (
+    <div className="modal-bg" onMouseDown={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className="modal" role="dialog" aria-modal="true">
+        <div className="section-title">{isExisting ? "Edit Pengerjaan" : "Pengerjaan Baru"}</div>
+        {localErr && <div className="login-error">{localErr}</div>}
+        {structLocked && <div className="locked-note">Client, Kategori, & PIC dikunci — cuma Admin yang bisa ubah. Kamu tetap bisa tambah/edit sub-task, progress, dan Notes.</div>}
+
+        <div className="field">
+          <label htmlFor="tm-title">Judul Assignment</label>
+          <input id="tm-title" value={form.title} onChange={e=>set("title",e.target.value)}
+            placeholder="mis. Reels Promo Serum Vitamin C" />
+        </div>
+
+        <div className="field">
+          <label htmlFor="tm-client">Client / Project</label>
+          <select id="tm-client" value={form.client} onChange={e=>set("client",e.target.value)} disabled={structLocked}>
+            <option value="">Pilih client</option>
+            {projectNames.map(c=><option key={c} value={c}>{c}</option>)}
+            {form.client && !projectNames.includes(form.client) && <option value={form.client}>{form.client} (arsip)</option>}
+          </select>
+        </div>
+
+        <div className="field">
+          <label htmlFor="tm-cat">Kategori</label>
+          {singleCategory ? (
+            <>
+              <div><span className="badge badge-purple">{form.category}</span></div>
+              <div className="locked-note" style={{marginTop:6}}>Sesuai job desk kamu, task yang bisa dibuat cuma kategori ini.</div>
+            </>
+          ) : (
+            <select id="tm-cat" value={form.category} onChange={e=>setCategory(e.target.value)} disabled={structLocked}>
+              {categoryOptions.map(c=><option key={c} value={c}>{c}</option>)}
+              {isExisting && !categoryOptions.includes(form.category) && <option value={form.category}>{form.category}</option>}
+            </select>
+          )}
+        </div>
+
+        {isReview ? (
+          <div className="locked-note" style={{marginTop:-4}}>
+            PIC ditentukan per kiriman di bawah — sesuai job desk masing-masing.
+          </div>
+        ) : (
+          <div className="field">
+            <label>PIC (bisa pilih lebih dari 1)</label>
+            <div style={{border:"1px solid var(--line)",borderRadius:10,padding:8,maxHeight:150,overflowY:"auto"}}>
+              {(() => {
+                const { fit, rest } = splitByRole(CATEGORY_ROLES[form.category]);
+                const row = (x) => (
+                  <label key={x.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 2px",fontSize:13,fontWeight:400}}>
+                    <input type="checkbox" style={{width:"auto"}} checked={form.pics.includes(x.name)}
+                      disabled={structLocked} onChange={()=>togglePic(x.name)} />
+                    {x.name} <span className="meta-line">· {ROLES[x.role]||"-"}</span>
+                  </label>
+                );
+                return (
+                  <>
+                    {fit.map(row)}
+                    {rest.length>0 && (
+                      <details style={{marginTop:6}}>
+                        <summary style={{fontSize:11.5,color:"var(--ink-3)",cursor:"pointer"}}>
+                          Di luar job desk ({rest.length})
+                        </summary>
+                        <div style={{paddingTop:4}}>{rest.map(row)}</div>
+                      </details>
+                    )}
+                    {roster.length===0 && <div className="meta-line">Belum ada staff aktif.</div>}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {!isReview && (
+        <div className="stack">
+          <div className="field" style={{marginBottom:10}}>
+            <label htmlFor="tm-brief">📄 Brief / acuan — dibaca</label>
+            <input id="tm-brief" value={form.briefLink} onChange={e=>set("briefLink",e.target.value)}
+              placeholder={isProduction ? "Link moodboard/storyboard" : "Link brief dari Drive"} />
+            <div className="locked-note" style={{margin:"5px 0 0"}}>Materi yang perlu dibaca sebelum mulai.</div>
+          </div>
+          <div className="field" style={{marginBottom:0}}>
+            <label htmlFor="tm-folder">📁 Folder tujuan — simpan hasil ke sini</label>
+            <input id="tm-folder" value={form.driveFolder} onChange={e=>set("driveFolder",e.target.value)}
+              placeholder="https://drive.google.com/drive/folders/..." />
+            <div className="locked-note" style={{margin:"5px 0 0"}}>Simpan hasil kerjaannya di folder ini.</div>
+          </div>
+        </div>
+        )}
+
+        {isReview && (
+          <>
+            <div className="section-title" style={{marginTop:16}}>Kiriman yang dibutuhkan</div>
+            <div className="locked-note">
+              Satu assignment bisa dikerjakan lebih dari satu orang — reels biasanya dua bagian: file video
+              dari editor, cover dari designer. Masing-masing punya brief dan folder sendiri.
+              Assignment baru masuk review kalau semua bagian sudah terkirim.
+            </div>
+            {form.deliverables.map((d,i) => (
+              <div key={d._id} className="stack" style={{marginBottom:8}}>
+                <div style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:7}}>
+                  <input value={d.label} onChange={e=>setDeliv(i,"label",e.target.value)}
+                    disabled={!canApprove} placeholder={`Nama kiriman #${i+1}`}
+                    style={{flex:1,padding:9,border:"1px solid var(--line)",borderRadius:9,fontSize:13.5,fontFamily:"inherit"}} />
+                  {canApprove && form.deliverables.length>1 &&
+                    <button className="btn btn-outline btn-sm" onClick={()=>removeDeliv(i)}>Hapus</button>}
+                </div>
+                <label style={{fontSize:11,color:"var(--ink-3)",fontWeight:600,display:"block",marginBottom:4}}>Dikerjakan oleh</label>
+                <div style={{marginBottom:8}}>
+                  <PicSelect value={d.pic} roles={d.role ? [d.role] : null} disabled={!canApprove}
+                    onChange={e=>setDeliv(i,"pic",e.target.value)} />
+                </div>
+                <label style={{fontSize:11,color:"var(--ink-3)",fontWeight:600,display:"block",marginBottom:4}}>📄 Brief bagian ini</label>
+                <input value={d.briefLink} onChange={e=>setDeliv(i,"briefLink",e.target.value)} disabled={!canApprove}
+                  placeholder="https://drive.google.com/..."
+                  style={{width:"100%",padding:9,border:"1px solid var(--line)",borderRadius:9,fontSize:13.5,fontFamily:"inherit",marginBottom:8}} />
+                <label style={{fontSize:11,color:"var(--ink-3)",fontWeight:600,display:"block",marginBottom:4}}>📁 Folder tujuan bagian ini</label>
+                <input value={d.driveFolder} onChange={e=>setDeliv(i,"driveFolder",e.target.value)} disabled={!canApprove}
+                  placeholder="https://drive.google.com/drive/folders/..."
+                  style={{width:"100%",padding:9,border:"1px solid var(--line)",borderRadius:9,fontSize:13.5,fontFamily:"inherit"}} />
+              </div>
+            ))}
+            {canApprove && <button className="btn btn-outline btn-sm" onClick={addDeliv}>+ Tambah Kiriman</button>}
+            {canApprove && (
+              <div className="field" style={{marginTop:12}}>
+                <label htmlFor="tm-revt">Nanti dikirim untuk review ke</label>
+                <select id="tm-revt" value={form.reviewerTarget} onChange={e=>set("reviewerTarget",e.target.value)}>
+                  <option value="">Ditentukan nanti oleh yang melengkapi terakhir</option>
+                  {reviewerNames.map(r=><option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+            )}
+          </>
+        )}
+
+        {isGraphicDesign && (
+          <div className="field" style={{display:"flex",alignItems:"center",gap:8}}>
+            <input type="checkbox" id="forposting" style={{width:"auto"}} checked={form.forPosting===true}
+              onChange={e=>set("forPosting",e.target.checked)} />
+            <label htmlFor="forposting" style={{margin:0}}>Untuk diposting ke sosmed (butuh caption)</label>
+          </div>
+        )}
+
+        {isPaidAds && (
+          <>
+            <div className="row2">
+              <div className="field">
+                <label htmlFor="tm-plat">Platform</label>
+                <select id="tm-plat" value={form.platform} onChange={e=>set("platform",e.target.value)}>
+                  <option value="">Pilih platform</option>
+                  {AD_PLATFORMS.map(p=><option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="tm-obj">Objektif</label>
+                <select id="tm-obj" value={form.objective} onChange={e=>set("objective",e.target.value)} disabled={!form.platform}>
+                  <option value="">{form.platform ? "Pilih objektif" : "Pilih platform dulu"}</option>
+                  {(AD_OBJECTIVES[form.platform]||[]).map(o=><option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="field">
+              <label htmlFor="tm-budget">Budget</label>
+              <input id="tm-budget" type="number" min="0" value={form.budget} onChange={e=>set("budget",e.target.value)} placeholder="Rp / periode" />
+            </div>
+
+            <div className="section-title" style={{fontSize:13}}>Konten yang Dinaikkan</div>
+            <div className="locked-note">Label, link, dan caption satu konten digabung dalam satu blok — supaya tidak tertukar saat ada lebih dari satu konten.</div>
+            {form.adItems.map((a,i) => (
+              <div key={a._id} style={{background:"var(--offwhite)",borderRadius:8,padding:10,marginBottom:8,border:"1px solid var(--line)"}}>
+                <div style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:6}}>
+                  <input value={a.label} onChange={e=>setAdItem(i,"label",e.target.value)} placeholder={`Nama konten #${i+1}`}
+                    style={{flex:1,padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}} />
+                  {form.adItems.length>1 && <button className="btn btn-outline btn-sm" onClick={()=>removeAdItem(i)}>Hapus</button>}
+                </div>
+                <input value={a.link} onChange={e=>setAdItem(i,"link",e.target.value)} placeholder="Link Drive konten"
+                  style={{width:"100%",padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,marginBottom:6,fontFamily:"inherit"}} />
+                <textarea rows="2" value={a.caption} onChange={e=>setAdItem(i,"caption",e.target.value)} placeholder="Caption / copy ads untuk konten ini"
+                  style={{width:"100%",padding:8,border:"1px solid var(--line)",borderRadius:6,fontFamily:"inherit",fontSize:13,marginBottom:8}} />
+                <div style={{borderTop:"1px dashed var(--line)",paddingTop:8}}>
+                  <label style={{fontSize:11,color:"var(--grey)",fontWeight:700,display:"block",marginBottom:4}}>
+                    Bukti Tayang — link screenshot Ads Manager
+                  </label>
+                  <input value={a.proofLink}
+                    onChange={e=>setAdItem(i,"proofLink",e.target.value)}
+                    onBlur={e=>{ if(e.target.value.trim()){ setAdItem(i,"proofUploadedAt", new Date().toISOString()); setAdItem(i,"proofUploadedBy", myName); } }}
+                    placeholder="https://drive.google.com/..."
+                    style={{width:"100%",padding:8,border:"1px solid var(--line)",borderRadius:6,fontSize:13,fontFamily:"inherit"}} />
+                  <div style={{fontSize:10,color:"var(--ink-3)",marginTop:4}}>
+                    Boleh pakai link Drive, atau unggah langsung di bawah.
+                  </div>
+                  {a.proofLink && safeUrl(a.proofLink) && (
+                    <div style={{marginTop:6,fontSize:12}}>
+                      <ExternalLink href={a.proofLink} style={{color:"var(--brand-deep)"}}>Buka bukti tayang</ExternalLink>
+                      {a.proofUploadedBy ? <span style={{color:"var(--grey)"}}> · oleh {a.proofUploadedBy}</span> : null}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            <button className="btn btn-outline btn-sm" onClick={addAdItem}>+ Tambah Konten</button>
+            {isExisting && (
+              <div style={{marginTop:12}}>
+                <ImageBoard taskId={task.id} kind="ads" canEdit={true} busy={busy}
+                  onAdd={onAddImage} onRemove={onRemoveImage}
+                  title="Bukti tayang — screenshot Ads Manager"
+                  hint="Tersimpan permanen sebagai arsip. Dikompres otomatis supaya hemat kuota." />
+              </div>
+            )}
+          </>
+        )}
+
+        {isProduction && (
+          <>
+            <div className="field">
+              <label htmlFor="tm-loc">Lokasi Shooting</label>
+              <input id="tm-loc" value={form.shootLocation} onChange={e=>set("shootLocation",e.target.value)} placeholder="mis. Studio N Beauty, Galuh Mas" />
+            </div>
+            <div className="field">
+              <label htmlFor="tm-time">Waktu Shooting</label>
+              <input id="tm-time" type="datetime-local" value={form.shootTime} onChange={e=>set("shootTime",e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="tm-eq">Peralatan yang Dibawa</label>
+              <textarea id="tm-eq" rows="2" value={form.equipment} onChange={e=>set("equipment",e.target.value)} placeholder="mis. Kamera A7III, lighting kit, gimbal" />
+            </div>
+            <div className="field">
+              <label htmlFor="tm-crew">Man Power / Crew</label>
+              <textarea id="tm-crew" rows="2" value={form.crew} onChange={e=>set("crew",e.target.value)} placeholder="mis. Yadi (videographer), Dillar (BTS)" />
+            </div>
+          </>
+        )}
+
+        <div className="row2">
+          <div className="field">
+            <label htmlFor="tm-start">Start Date{isPaidAds ? " (mulai ads)" : ""}</label>
+            <input id="tm-start" type="date" value={form.startDate} onChange={e=>set("startDate",e.target.value)} />
+          </div>
+          <div className="field">
+            <label htmlFor="tm-due">Due Date{isPaidAds ? " (berakhir ads)" : ""}</label>
+            <input id="tm-due" type="date" value={form.dueDate} onChange={e=>set("dueDate",e.target.value)} />
+          </div>
+        </div>
+
+        {(!isReview || form.status==="Not Started" || form.status==="In Progress") ? (
+          <div className="field">
+            <label htmlFor="tm-status">Status</label>
+            <select id="tm-status" value={form.status} onChange={e=>set("status",e.target.value)}>
+              {(isReview ? ["Not Started","In Progress"] : BASIC_STATUSES).map(s=><option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div className="field">
+            <label>Status</label>
+            <div><span className={"badge " + statusCls(form.status)}>{form.status}</span></div>
+            <div style={{fontSize:11,color:"var(--grey)",marginTop:4}}>Diubah lewat tombol aksi di bagian "Link, Approval & Revisi" di bawah.</div>
+          </div>
+        )}
+
+        {!isPaidAds && (
+          <>
+            <div style={{height:1,background:"var(--line)",margin:"14px 0"}}></div>
+            <div className="row2">
+              <div className="field">
+                <label htmlFor="tm-prio">Priority</label>
+                <select id="tm-prio" value={form.priority} onChange={e=>set("priority",e.target.value)}>
+                  {PRIORITIES.map(p=><option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="tm-prog">Progress: {form.progress}%</label>
+                <input id="tm-prog" type="range" min="0" max="100" step="5" value={form.progress}
+                  onChange={e=>set("progress",Number(e.target.value))} style={{padding:0}} />
+              </div>
+            </div>
+          </>
+        )}
+
+        {isReview && !isExisting && (
+          <>
+            <div style={{height:1,background:"var(--line)",margin:"14px 0"}}></div>
+            <div className="locked-note">Simpan task ini dulu — setelah itu bagian Link, Approval & Revisi otomatis muncul.</div>
+          </>
+        )}
+
+        {isReview && isExisting && (
+          <>
+            <div style={{height:1,background:"var(--line)",margin:"14px 0"}}></div>
+            <div className="section-title" style={{fontSize:13}}>Link, Approval & Revisi</div>
+
+            {(form.briefLink || form.driveFolder) && (
+              <div className="stack" style={{marginBottom:10}}>
+                {form.briefLink && (
+                  <div style={{fontSize:12,marginBottom:form.driveFolder?6:0}}>
+                    📄 Brief: <ExternalLink href={form.briefLink} style={{color:"var(--ink-2)",fontWeight:600,wordBreak:"break-all"}}>{form.briefLink}</ExternalLink>
+                  </div>
+                )}
+                {form.driveFolder && (
+                  <div style={{fontSize:12}}>
+                    📁 Simpan hasil ke: <ExternalLink href={form.driveFolder} style={{color:"var(--brand)",fontWeight:600,wordBreak:"break-all"}}>{form.driveFolder}</ExternalLink>
+                  </div>
+                )}
+              </div>
+            )}
+            {form.link && (
+              <div style={{fontSize:12,marginBottom:8}}>
+                Link saat ini: <ExternalLink href={form.link} style={{color:"var(--brand-deep)",fontWeight:700,wordBreak:"break-all"}}>{form.link}</ExternalLink>
+              </div>
+            )}
+            {form.reviewerTarget && (form.status==="Waiting Review") && (
+              <div className="locked-note">Dikirim ke: <b>{form.reviewerTarget}</b>. PM/CS lain tetap boleh approve kalau yang dituju berhalangan.</div>
+            )}
+
+            {form.activity.length>0 && (
+              <div style={{background:"var(--offwhite)",borderRadius:8,padding:10,marginBottom:10,maxHeight:180,overflowY:"auto"}}>
+                {[...form.activity].sort((a,b)=>(a.at||"").localeCompare(b.at||"")).map((a,i) => (
+                  <div key={i} style={{fontSize:11.5,marginBottom:6}}>
+                    <b>{a.author||"?"}</b> <span style={{color:"var(--grey)"}}>· {activityLabel(a.type)} · {fmtDate((a.at||"").slice(0,10))}</span>
+                    <div style={{wordBreak:"break-word"}}>{a.text}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {(form.status==="Not Started" || form.status==="In Progress" || form.status==="Revision") && (
+              <div>
+                {(form.deliverables||[]).map(d => {
+                  const st = DELIV_STATE[d.state] || DELIV_STATE.pending;
+                  const mine = !d.pic || d.pic===myName || isAdmin || canApprove;
+                  const needs = d.state !== "submitted";
+                  const draft = delivDraft[d._id] !== undefined ? delivDraft[d._id] : (d.link || "");
+                  return (
+                    <div key={d._id} className="stack">
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,marginBottom:5}}>
+                        <div style={{minWidth:0}}>
+                          <div style={{fontSize:13.5,fontWeight:620}}>{d.label || "Kiriman"}</div>
+                          <div className="meta-line">{d.pic || "Belum ada PIC"}{d.by ? ` · dikirim ${d.by}` : ""}</div>
+                        </div>
+                        <span className={"badge " + st.cls} style={{flexShrink:0}}>{st.label}</span>
+                      </div>
+                      {d.state==="revision" && (
+                        <ImageBoard taskId={task.id} kind="rev" canEdit={canApprove} busy={busy}
+                          onAdd={onAddImage} onRemove={onRemoveImage}
+                          title="Screenshot acuan revisi" hint="" />
+                      )}
+                      {(d.briefLink || d.driveFolder) && (
+                        <div style={{fontSize:11.5,marginBottom:7,lineHeight:1.7}}>
+                          {d.briefLink && <div>📄 <ExternalLink href={d.briefLink} style={{color:"var(--ink-2)",wordBreak:"break-all"}}>Brief bagian ini</ExternalLink></div>}
+                          {d.driveFolder && <div>📁 <ExternalLink href={d.driveFolder} style={{color:"var(--brand)",wordBreak:"break-all"}}>Folder simpan hasil</ExternalLink></div>}
+                        </div>
+                      )}
+                      {d.state==="revision" && d.note && (
+                        <div style={{fontSize:12,background:"var(--late-bg)",color:"var(--late)",
+                          borderRadius:9,padding:9,marginBottom:7}}>Catatan revisi: {d.note}</div>
+                      )}
+                      {d.link && d.state==="submitted" && (
+                        <div style={{fontSize:12,marginBottom:6}}>
+                          <ExternalLink href={d.link} style={{color:"var(--brand)",wordBreak:"break-all"}}>{d.link}</ExternalLink>
+                        </div>
+                      )}
+                      {mine && needs ? (
+                        <>
+                          <input value={draft} placeholder="https://drive.google.com/..."
+                            onChange={e=>setDelivDraft(v => ({...v, [d._id]: e.target.value}))}
+                            style={{width:"100%",padding:9,border:"1px solid var(--line)",borderRadius:9,
+                              fontSize:13.5,fontFamily:"inherit",marginBottom:7}} />
+                          <button className="btn btn-gold btn-sm" disabled={!draft.trim() || busy}
+                            onClick={()=>{ if(guardLink(draft)) onSubmitDeliverable(task.id, d._id, draft.trim(), reviewer); }}>
+                            Kirim {d.label || "kiriman"}
+                          </button>
+                        </>
+                      ) : needs ? (
+                        <div className="locked-note" style={{margin:0}}>Menunggu {d.pic || "PIC"} mengirim bagiannya.</div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+
+                {!form.reviewerTarget && (form.deliverables||[]).some(d=>d.state!=="submitted") && (
+                  <div className="field" style={{marginTop:6}}>
+                    <label htmlFor="tm-rev">Kirim ke (kalau ini kiriman terakhir)</label>
+                    <select id="tm-rev" value={reviewer} onChange={e=>setReviewer(e.target.value)}>
+                      <option value="">Pilih PM / Content Strategist</option>
+                      {reviewerNames.map(r=><option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div className="locked-note">
+                  Begitu semua kiriman terisi, task otomatis masuk review
+                  {form.reviewerTarget ? ` ke ${form.reviewerTarget}` : ""}.
+                </div>
+              </div>
+            )}
+
+            {form.status==="Waiting Review" && (
+              canApprove ? (
+                <div className="field">
+                  {(form.deliverables||[]).map(d => (
+                    <div key={d._id} style={{fontSize:12.5,marginBottom:5}}>
+                      <b>{d.label}</b> <span className="meta-line">· {d.pic || "-"}</span>
+                      {d.link && <> — <ExternalLink href={d.link} style={{color:"var(--brand)",wordBreak:"break-all"}}>lihat</ExternalLink></>}
+                    </div>
+                  ))}
+                  <ImageBoard taskId={task.id} kind="rev" canEdit={true} busy={busy}
+                    onAdd={onAddImage} onRemove={onRemoveImage}
+                    title="Screenshot acuan revisi"
+                    hint="Tandai bagian yang perlu diperbaiki, lalu unggah di sini. Otomatis terhapus setelah client approve." />
+                  <label htmlFor="tm-note" style={{marginTop:10}}>Catatan Review (wajib kalau minta revisi)</label>
+                  <textarea id="tm-note" rows="2" value={reviewNote} onChange={e=>setReviewNote(e.target.value)} />
+                  {(form.deliverables||[]).length>1 && (
+                    <div style={{marginTop:8}}>
+                      <div style={{fontSize:11.5,fontWeight:620,color:"var(--ink-2)",marginBottom:5}}>Revisi untuk kiriman mana?</div>
+                      {form.deliverables.map(d => (
+                        <label key={d._id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,fontWeight:400,padding:"3px 0"}}>
+                          <input type="checkbox" style={{width:"auto"}} checked={revTargets.includes(d._id)}
+                            onChange={()=>setRevTargets(v => v.includes(d._id) ? v.filter(x=>x!==d._id) : [...v, d._id])} />
+                          {d.label} <span className="meta-line">· {d.pic || "-"}</span>
+                        </label>
+                      ))}
+                      <div className="locked-note" style={{marginTop:2}}>Yang tidak dicentang tidak perlu dikerjakan ulang.</div>
+                    </div>
+                  )}
+                  {needsClientGate(form.category) && (
+                    <div className="locked-note" style={{marginTop:6}}>
+                      Approve di sini = disetujui internal. Setelah itu masih perlu konfirmasi client,
+                      dan yang mengkonfirmasi harus PM/CS lain — bukan kamu.
+                    </div>
+                  )}
+                  <div style={{display:"flex",gap:8,marginTop:6}}>
+                    <button className="btn btn-outline btn-sm" disabled={!reviewNote.trim() || busy}
+                      onClick={()=>{
+                        const all = (form.deliverables||[]).map(d=>d._id);
+                        const targets = revTargets.length ? revTargets : all;
+                        return targets.length ? onRequestRevisionOn(task.id, targets, reviewNote)
+                                              : onRequestRevision(task.id, reviewNote);
+                      }}>Minta Revisi</button>
+                    <button className="btn btn-gold btn-sm" disabled={busy}
+                      onClick={()=>onApproveTask(task.id, reviewNote, form.category)}>Approve</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="locked-note">Menunggu review dari PM / Content Strategist.</div>
+              )
+            )}
+
+            {form.status==="Menunggu Approval Klien" && (
+              canClientGate ? (
+                <div className="field">
+                  <label htmlFor="tm-cnote">Konfirmasi dari Client</label>
+                  <textarea id="tm-cnote" rows="2" value={reviewNote} onChange={e=>setReviewNote(e.target.value)}
+                    placeholder="Catatan (wajib kalau client minta revisi)" />
+                  <div style={{display:"flex",gap:8,marginTop:6}}>
+                    <button className="btn btn-outline btn-sm" disabled={!reviewNote.trim() || busy}
+                      onClick={()=>onClientRevision(task.id, reviewNote)}>Client Minta Revisi</button>
+                    <button className="btn btn-gold btn-sm" disabled={busy}
+                      onClick={()=>onClientApprove(task.id)}>Client Approve</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="locked-note">
+                  {iApprovedInternally
+                    ? "Kamu yang approve internal — konfirmasi client harus dari PM/CS lain."
+                    : "Menunggu konfirmasi client dari PM / Content Strategist."}
+                </div>
+              )
+            )}
+
+            {form.status==="Approved" && isContent && (
+              canApprove ? (
+                <div className="field">
+                  <div className="locked-note" style={{marginTop:0}}>
+                    Compile dulu hasil kerjaannya — termasuk caption di dalamnya — lalu tempel link preview di sini.
+                    Itu satu-satunya yang dilihat Operations.
+                  </div>
+                  <label htmlFor="tm-prev">Link Preview (hasil compile)</label>
+                  <input id="tm-prev" value={previewDraft} onChange={e=>setPreviewDraft(e.target.value)}
+                    placeholder="https://drive.google.com/..." />
+                  <label htmlFor="tm-pdate" style={{marginTop:8}}>Tanggal Posting (target buat Operations)</label>
+                  <input id="tm-pdate" type="date" value={postDateDraft} onChange={e=>setPostDateDraft(e.target.value)} />
+                  <button className="btn btn-gold btn-sm" style={{marginTop:8,width:"100%"}}
+                    disabled={!previewDraft.trim() || busy}
+                    onClick={()=>{ if(guardLink(previewDraft)) onSendToOperations(task.id, previewDraft.trim(), postDateDraft); }}>
+                    Kirim ke Operations
+                  </button>
+                  {!previewDraft.trim() && <div className="locked-note" style={{marginTop:6}}>Link preview wajib diisi sebelum bisa dikirim.</div>}
+                </div>
+              ) : (
+                <div className="locked-note">Menunggu di-compile oleh PM / Content Strategist.</div>
+              )
+            )}
+            {form.status==="Approved" && !isContent && (
+              <button className="btn btn-gold btn-sm" disabled={busy} onClick={()=>onMarkDoneManual(task.id)}>Tandai Selesai (Done)</button>
+            )}
+
+            {form.status==="Ready to Post" && (
+              <div>
+                {form.previewLink && (
+                  <div style={{fontSize:12,marginBottom:6}}>
+                    <b>Preview:</b> <ExternalLink href={form.previewLink} style={{color:"var(--brand-deep)",wordBreak:"break-all"}}>{form.previewLink}</ExternalLink>
+                  </div>
+                )}
+                {form.postingDate && (
+                  <div style={{fontSize:12,marginBottom:6}}><b>Target tayang:</b> {fmtDate(form.postingDate)}</div>
+                )}
+                {form.caption && (
+                  <details style={{marginBottom:8}}>
+                    <summary style={{fontSize:11.5,color:"var(--ink-3)",cursor:"pointer"}}>Caption lama (dari versi sebelumnya)</summary>
+                    <div style={{fontSize:12,background:"var(--offwhite)",borderRadius:8,padding:9,whiteSpace:"pre-wrap",marginTop:6}}>{form.caption}</div>
+                  </details>
+                )}
+                {canMarkPosted ? (
+                  <>
+                    <div className="field">
+                      <label htmlFor="tm-live">Link Postingan Live</label>
+                      <input id="tm-live" value={liveLinkDraft} onChange={e=>setLiveLinkDraft(e.target.value)}
+                        placeholder="https://instagram.com/p/..." />
+                    </div>
+                    <button className="btn btn-gold btn-sm" disabled={!liveLinkDraft.trim() || busy}
+                      onClick={()=>{ if(guardLink(liveLinkDraft)) onMarkPosted(task.id, liveLinkDraft.trim()); }}>
+                      Tandai Sudah Posting
+                    </button>
+                    {!showReturn ? (
+                      <button className="btn btn-outline btn-sm" style={{marginLeft:8}} onClick={()=>setShowReturn(true)}>
+                        Ada yang salah — Kembalikan ke PM
+                      </button>
+                    ) : (
+                      <div className="field" style={{marginTop:10}}>
+                        <label htmlFor="tm-ret">Apa yang salah? (wajib diisi)</label>
+                        <textarea id="tm-ret" rows="2" value={returnNote} onChange={e=>setReturnNote(e.target.value)}
+                          placeholder="mis. file preview corrupt / caption salah client / versi lama" />
+                        <div className="locked-note" style={{marginTop:6}}>
+                          Task balik ke PM/CS untuk di-compile ulang. Link preview lama dihapus, caption tetap tersimpan.
+                        </div>
+                        <div style={{display:"flex",gap:8,marginTop:6}}>
+                          <button className="btn btn-outline btn-sm" onClick={()=>{setShowReturn(false); setReturnNote("");}}>Batal</button>
+                          <button className="btn btn-gold btn-sm" disabled={!returnNote.trim() || busy}
+                            onClick={()=>onReturnToPM(task.id, returnNote)}>Kembalikan ke PM</button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="locked-note">Menunggu ditandai tayang oleh PM / Content Strategist / Operations.</div>
+                )}
+              </div>
+            )}
+
+            {form.status==="Done" && form.livePostLink && (
+              <div style={{fontSize:12,marginBottom:8}}>
+                Live: <ExternalLink href={form.livePostLink} style={{wordBreak:"break-all",color:"var(--brand-deep)"}}>{form.livePostLink}</ExternalLink>
+              </div>
+            )}
+
+            <div className="field" style={{marginTop:10}}>
+              <label htmlFor="tm-cm">Tambah Komentar</label>
+              <textarea id="tm-cm" rows="2" value={commentDraft} onChange={e=>setCommentDraft(e.target.value)} />
+              <button className="btn btn-outline btn-sm" style={{marginTop:6}} disabled={!commentDraft.trim() || busy}
+                onClick={()=>onAddComment(task.id, commentDraft)}>Kirim Komentar</button>
+            </div>
+          </>
+        )}
+
+        <div className="field" style={{marginTop:12}}>
+          <label htmlFor="tm-notes">Notes / Blocker</label>
+          <textarea id="tm-notes" rows="2" value={form.notes} onChange={e=>set("notes",e.target.value)} />
+        </div>
+        <div className="field" style={{display:"flex",alignItems:"center",gap:8}}>
+          <input type="checkbox" id="showcal" style={{width:"auto"}}
+            checked={(isPaidAds||isProduction) ? true : form.showOnCalendar}
+            disabled={isPaidAds||isProduction} onChange={e=>set("showOnCalendar",e.target.checked)} />
+          <label htmlFor="showcal" style={{margin:0}}>Tampilkan di Calendar{(isPaidAds||isProduction) ? " (wajib)" : ""}</label>
+        </div>
+
+        <div className="modal-actions">
+          <button className="btn btn-outline" onClick={onClose}>Batal</button>
+          <button className="btn btn-gold" onClick={()=>onSave(form)} disabled={busy}>{busy ? "Menyimpan..." : "Simpan"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===================== CALENDAR ===================== */
+function CalendarView({tasks, calMonth, setCalMonth, holidayMap}){
+  const year = calMonth.getFullYear(), month = calMonth.getMonth();
+  const monthLabel = calMonth.toLocaleDateString("id-ID",{month:"long",year:"numeric"});
+  const [quickView, setQuickView] = useState(null);
+  const [dayView, setDayView] = useState(null);
+  const [clientFilter, setClientFilter] = useState("");
+  // Di layar HP, grid 7 kolom membuat tulisan terlalu kecil — agenda jadi bawaan.
+  const [view, setView] = useState(() => (window.innerWidth < 640 ? "agenda" : "grid"));
+  const today = todayStr();
+
+  const monthTasks = useMemo(() => tasks
+    .filter(t => t.showOnCalendar)
+    .filter(t => !clientFilter || t.client===clientFilter), [tasks, clientFilter]);
+
+  // Jadwal tayang muncul otomatis tanpa perlu centang "Tampilkan di Calendar".
+  const postTasks = useMemo(() => tasks
+    .filter(t => t.postingDate && t.status !== "Done")
+    .filter(t => !clientFilter || t.client===clientFilter), [tasks, clientFilter]);
+
+  const clientOptions = useMemo(() =>
+    [...new Set(tasks.filter(t=>t.showOnCalendar || t.postingDate).map(t=>t.client))].sort(), [tasks]);
+
+  // Dua sumber tanggal: deadline kerjaan (perlu centang) dan jadwal tayang (otomatis).
+  const eventsByDate = useMemo(() => {
+    const map = {};
+    const push = (d, t, kind) => { if(!d) return; if(!map[d]) map[d] = []; map[d].push({t, kind, key: t.id+"_"+kind}); };
+    monthTasks.forEach(t => push(eventDate(t), t, t.category==="Billing" ? "billing" : "work"));
+    postTasks.forEach(t => push(t.postingDate, t, "post"));
+    return map;
+  }, [monthTasks, postTasks]);
+
+  const gridStart = new Date(year, month, 1);
+  gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+  const lastDay = new Date(year, month+1, 0).getDate();
+  const rowsNeeded = Math.ceil((new Date(year, month, 1).getDay() + lastDay) / 7);
+  const cells = [];
+  for(let i=0;i<rowsNeeded*7;i++){
+    const d = new Date(gridStart);
+    d.setDate(gridStart.getDate()+i);
+    cells.push(d);
+  }
+
+  // Agenda: hanya tanggal yang benar-benar ada isinya, plus hari libur.
+  const agendaDays = useMemo(() => {
+    const out = [];
+    for(let day=1; day<=lastDay; day++){
+      const iso = toLocalISO(new Date(year, month, day));
+      const evs = eventsByDate[iso] || [];
+      if(evs.length || holidayMap[iso]) out.push({ iso, evs, hol: holidayMap[iso] });
+    }
+    return out;
+  }, [year, month, lastDay, eventsByDate, holidayMap]);
+
+  const shiftMonth = (delta) => setCalMonth(new Date(year, month+delta, 1));
+  const dayHeads = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+
+  return (
+    <div className="card">
+      <div className="month-nav">
+        <button onClick={()=>shiftMonth(-1)} aria-label="Bulan sebelumnya">‹</button>
+        <div className="label">{monthLabel}</div>
+        <button onClick={()=>shiftMonth(1)} aria-label="Bulan berikutnya">›</button>
+      </div>
+
+      <div className="chips">
+        <button className={"chip"+(view==="agenda"?" on":"")} onClick={()=>setView("agenda")}>Agenda</button>
+        <button className={"chip"+(view==="grid"?" on":"")} onClick={()=>setView("grid")}>Kalender</button>
+      </div>
+
+      <div className="filter-row">
+        <select value={clientFilter} onChange={e=>setClientFilter(e.target.value)}>
+          <option value="">Semua Client</option>
+          {clientOptions.map(c=><option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      {view === "agenda" ? (
+        <div>
+          {agendaDays.length===0 && <div className="empty">Tidak ada agenda di bulan ini.</div>}
+          {agendaDays.map(({iso, evs, hol}) => {
+            const d = new Date(iso+"T00:00:00");
+            const label = d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"});
+            return (
+              <div key={iso} className="agenda-day">
+                <div className={"agenda-date" + (hol ? " hol":"")}>
+                  {label}{iso===today ? " · HARI INI" : ""}{hol ? ` · ${hol}` : ""}
+                </div>
+                {evs.map(({t:ev, kind, key}) => {
+                  const urg = kind==="post" ? null : urgencyBadge(ev, today);
+                  const spine = kind==="post" ? " sp-post" : spineCls(ev, today);
+                  return (
+                    <button key={key} className={"card card-btn" + spine} style={{padding:11,marginBottom:6,boxShadow:"none",border:"1px solid var(--line-soft)"}}
+                      onClick={()=>setQuickView(ev)}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                        <div className="client-line">{ev.client} · {ev.category}</div>
+                        {kind==="post"
+                          ? <span className="badge badge-purple" style={{flexShrink:0}}>Jadwal tayang</span>
+                          : kind==="billing"
+                            ? <span className="badge badge-green" style={{flexShrink:0}}>Billing</span>
+                            : urg && <span className={"badge " + urg.cls} style={{flexShrink:0}}>{urg.label}</span>}
+                      </div>
+                      <div className="task-title" style={{marginBottom:0}}>{calLabel(ev)}</div>
+                    </button>
+                  );
+                })}
+                {evs.length===0 && <div style={{fontSize:12,color:"var(--grey)",paddingBottom:6}}>Libur — tidak ada agenda.</div>}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="cal-grid">
+          {dayHeads.map(d=><div key={d} className="cal-head">{d}</div>)}
+          {cells.map((d,i) => {
+            const iso = toLocalISO(d);
+            const inMonth = d.getMonth()===month;
+            const holName = holidayMap[iso];
+            const allEvs = eventsByDate[iso] || [];
+            const showAsCount = allEvs.length > 2;
+            return (
+              <div key={i} className={"cal-cell" + (!inMonth?" dim":"") + (holName?" holiday":"") + (iso===today?" today":"")}>
+                <div className="cal-date">{d.getDate()}</div>
+                {holName && <div className="cal-holname">{holName}</div>}
+                {showAsCount ? (
+                  <button className="cal-count" onClick={()=>setDayView({iso, tasks:allEvs})}>{allEvs.length} task</button>
+                ) : (
+                  allEvs.map(({t:ev, kind, key}) => (
+                    <button key={key} className={"cal-event" + (kind==="post" ? " post" : kind==="billing" ? " billing":"")}
+                      onClick={()=>setQuickView(ev)}>{kind==="post" ? "Tayang: " + ev.client : calLabel(ev)}</button>
+                  ))
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="legend">
+        <span><span className="dot" style={{background:"var(--post)"}}></span>Jadwal tayang</span>
+        <span><span className="dot" style={{background:"var(--ok)"}}></span>Penagihan client</span>
+        <span><span className="dot" style={{background:"var(--calm)"}}></span>Kerjaan</span>
+        <span><span className="dot" style={{background:"var(--late)"}}></span>Tanggal merah</span>
+      </div>
+
+      {dayView && (
+        <DayTasksModal iso={dayView.iso} entries={dayView.tasks} onClose={()=>setDayView(null)}
+          onPickTask={(t)=>{ setDayView(null); setQuickView(t); }} />
+      )}
+      {quickView && <TaskQuickView task={quickView} onClose={()=>setQuickView(null)} />}
+    </div>
+  );
+}
+
+function DayTasksModal({iso, entries, onClose, onPickTask}){
+  const dateLabel = new Date(iso+"T00:00:00").toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"});
+  const today = todayStr();
+  return (
+    <div className="modal-bg" onMouseDown={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className="modal" style={{maxWidth:420}}>
+        <div className="section-title">{dateLabel}</div>
+        <div className="meta-line" style={{marginBottom:12}}>{entries.length} agenda di tanggal ini.</div>
+        {entries.map(({t, kind, key}) => {
+          const urg = kind==="post" ? null : urgencyBadge(t, today);
+          return (
+            <button key={key} className={"card card-btn" + (kind==="post" ? " sp-post" : spineCls(t, today))}
+              style={{boxShadow:"none",border:"1px solid var(--line-soft)"}} onClick={()=>onPickTask(t)}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                <div className="client-line">{t.client} · {t.category}</div>
+                {kind==="post"
+                  ? <span className="badge badge-purple" style={{flexShrink:0}}>Jadwal tayang</span>
+                  : urg && <span className={"badge " + urg.cls} style={{flexShrink:0}}>{urg.label}</span>}
+              </div>
+              <div className="task-title" style={{marginBottom:0}}>{calLabel(t)}</div>
+            </button>
+          );
+        })}
+        <div className="modal-actions">
+          <button className="btn btn-outline" style={{width:"100%"}} onClick={onClose}>Tutup</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TaskQuickView({task, onClose}){
+  const flag = getFlag(task, todayStr());
+  return (
+    <div className="modal-bg" onMouseDown={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className="modal" style={{maxWidth:420}}>
+        <div style={{fontSize:11,color:"var(--gold)",fontWeight:800}}>{task.client} · {task.category}</div>
+        <div style={{display:"flex",gap:6,margin:"6px 0 12px",flexWrap:"wrap"}}>
+          <span className={"badge " + flag.cls}>{flag.label}</span>
+          <span className={"badge " + statusCls(task.status)}>{task.status}</span>
+        </div>
+        <div style={{fontSize:13,color:"var(--navy)",lineHeight:1.8,marginBottom:10}}>
+          <div><b>PIC:</b> {task.pics.length ? task.pics.join(", ") : "Belum ada PIC"}</div>
+          <div><b>Start:</b> {fmtDate(task.startDate)} &nbsp; <b>Due:</b> {fmtDate(task.dueDate)}</div>
+          <div><b>Progress rata-rata:</b> {task.avgProgress}%</div>
+        </div>
+        {(task.deliverables||[]).length>0 && (
+          <>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:6}}>Kiriman ({task.deliverables.length})</div>
+            {task.deliverables.map(d => {
+              const st = DELIV_STATE[d.state] || DELIV_STATE.pending;
+              return (
+                <div key={d._id} style={{background:"var(--offwhite)",borderRadius:10,padding:9,marginBottom:6}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                    <div style={{fontSize:13,fontWeight:600,minWidth:0}}>
+                      {d.label} <span className="meta-line">· {d.pic || "belum ada PIC"}</span>
+                    </div>
+                    <span className={"badge " + st.cls} style={{flexShrink:0}}>{st.label}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
+        {task.notes && <div style={{fontSize:12,marginTop:8}}><b>Notes:</b> {task.notes}</div>}
+        <div className="modal-actions">
+          <button className="btn btn-gold" style={{width:"100%"}} onClick={onClose}>Tutup</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+class ErrorCatcher extends React.Component {
+  constructor(p){ super(p); this.state = { err:null, info:"" }; }
+  static getDerivedStateFromError(err){ return { err }; }
+  componentDidCatch(err, info){
+    console.error(err, info);
+    this.setState({ info: (info && info.componentStack ? info.componentStack : "").split("\n").slice(0,6).join("\n") });
+  }
+  render(){
+    if(!this.state.err) return this.props.children;
+    return (
+      <div style={{padding:20,fontFamily:"-apple-system,sans-serif"}}>
+        <div style={{background:"#FCEFF3",border:"1px solid #E8B9C8",borderRadius:14,padding:16}}>
+          <div style={{fontWeight:700,fontSize:15,marginBottom:6,color:"#A82C56"}}>Aplikasi berhenti — ada error</div>
+          <div style={{fontSize:13,marginBottom:10,color:"#5A5670"}}>
+            Screenshot layar ini lalu kirim ke Okky. Datamu aman, tidak ada yang hilang.
+          </div>
+          <div style={{fontSize:12,fontFamily:"monospace",background:"#fff",borderRadius:8,padding:10,
+            whiteSpace:"pre-wrap",wordBreak:"break-word",marginBottom:10}}>
+            {"PESAN: " + String((this.state.err && (this.state.err.message || this.state.err)) || "?") + "\n\n"}
+            {String((this.state.err && this.state.err.stack) || "").slice(0,700)}
+            {this.state.info ? "\n--- lokasi ---" + this.state.info : ""}
+          </div>
+          <button onClick={()=>window.location.reload()}
+            style={{background:"#1E1B2E",color:"#fff",border:"none",borderRadius:10,padding:"9px 15px",
+              fontSize:13,fontWeight:600,cursor:"pointer"}}>Muat Ulang</button>
+        </div>
+      </div>
+    );
+  }
+}
+
+// Jaring pengaman terakhir: error di luar React tetap tampil, bukan layar kosong.
+window.addEventListener("error", function(e){
+  const root = document.getElementById("root");
+  if(root && root.childElementCount === 0){
+    root.innerHTML = '<div style="padding:20px;font-family:-apple-system,sans-serif">' +
+      '<div style="background:#FCEFF3;border:1px solid #E8B9C8;border-radius:14px;padding:16px">' +
+      '<div style="font-weight:700;color:#A82C56;margin-bottom:6px">Gagal memuat aplikasi</div>' +
+      '<div style="font-size:12px;font-family:monospace;background:#fff;border-radius:8px;padding:10px;white-space:pre-wrap;word-break:break-word">' +
+      String((e && (e.message || e.error)) || "Error tidak diketahui").slice(0,600) +
+      (e && e.filename ? "\n" + e.filename + ":" + e.lineno : "") +
+      '</div></div></div>';
+  }
+});
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <ErrorCatcher><App /></ErrorCatcher>
+);
+</script>
+</body>
+</html>
