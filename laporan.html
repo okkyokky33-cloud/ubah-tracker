@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Laporan Konten</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<style>
+  :root{
+    --brand:#58279D; --ink:#1a1a1a; --ink-2:#5c5565; --ink-3:#9790a3;
+    --line:#e4e0ea; --line-soft:#efedf2; --bg:#f2f0f5; --surface:#ffffff;
+    --warn:#c2443a; --warn-bg:#fdf2f0; --up:#2c6347; --down:#a8392f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:460px;margin:0 auto;background:var(--surface);min-height:100vh}
+  img{display:block;max-width:100%}
+  button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  a{color:inherit}
+
+  /* HEADER */
+  .hd{padding:20px;position:relative;color:#fff;background:var(--brand)}
+  .hd.dark-logo{background:#fff;color:var(--ink);border-bottom:3px solid var(--brand)}
+  .hd .by{position:absolute;top:17px;right:18px;font-size:9px;letter-spacing:1.2px;font-weight:700;opacity:.75}
+  .hd .logo{max-height:54px;width:auto;margin-bottom:12px}
+  .hd .cname{font-size:19px;font-weight:700;margin-bottom:9px;letter-spacing:-.3px}
+  .hd h1{font-size:20px;font-weight:700;letter-spacing:-.3px;margin-bottom:3px}
+  .hd .per{font-size:13px;opacity:.92}
+
+  /* SECTION */
+  .sec{padding:17px 20px 19px;border-bottom:9px solid var(--bg)}
+  .sec:last-of-type{border-bottom:none}
+  .sec h2{font-size:9.5px;letter-spacing:1.1px;color:var(--ink-3);font-weight:700;margin-bottom:12px}
+
+  .big{display:flex;align-items:baseline;gap:9px;margin-bottom:4px}
+  .big b{font-size:34px;font-weight:700;letter-spacing:-1px;line-height:1}
+  .big span{font-size:13px;color:var(--ink-2)}
+  .bigsub{font-size:11.5px;color:var(--ink-3);margin-bottom:16px}
+
+  /* BAR TARGET */
+  .row{margin-bottom:13px}
+  .rowtop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px}
+  .rowtop .n{font-size:12.5px;font-weight:600}
+  .rowtop .v{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .bar{height:7px;background:#eceaf0;border-radius:4px;overflow:hidden;display:flex}
+  .bar i{display:block;height:100%}
+  .bar i.solid{background:var(--brand)}
+  .bar i.pale{background:var(--brand);opacity:.4}
+  .legend{display:flex;gap:13px;font-size:10px;color:var(--ink-3);margin-top:10px;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:4px}
+  .dot{width:8px;height:8px;border-radius:2px;display:block;background:var(--brand)}
+  .dot.pale{opacity:.4}
+
+  /* ANGKA */
+  .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-soft);
+    border:1px solid var(--line-soft);border-radius:9px;overflow:hidden}
+  .m{background:var(--surface);padding:11px 12px}
+  .m .k{font-size:10px;color:var(--ink-3);line-height:1.35;margin-bottom:4px}
+  .m .v{font-size:17px;font-weight:700;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+  .m .v.empty{font-size:12px;font-weight:400;color:var(--ink-3);letter-spacing:0}
+  .m .d{font-size:10.5px;margin-top:2px;font-variant-numeric:tabular-nums}
+  .m .d.up{color:var(--up)}
+  .m .d.down{color:var(--down)}
+  .m .d.flat{color:var(--ink-3)}
+  /* 11 field = jumlah ganjil, jadi sel terakhir menyisakan kotak abu kosong di
+     kolom sebelahnya. Dibuat melebar dua kolom supaya tidak terlihat rusak. */
+  .mgrid .m:last-child:nth-child(odd){grid-column:1 / -1}
+  .mnote{font-size:11px;color:var(--ink-3);margin-top:10px;line-height:1.55}
+
+  /* MENUNGGU — informasi tambahan di bagian bawah.
+     Sengaja TIDAK memakai warna peringatan. Sebelumnya kotaknya merah dengan garis
+     tebal, dan itu membuat laporan terbaca sebagai daftar pekerjaan yang belum beres,
+     padahal isi laporan ini justru apa yang sudah dikerjakan. */
+  .extra{background:#faf9fb;border:1px solid var(--line-soft);border-radius:9px;padding:13px}
+  .extra .lead{font-size:11.5px;color:var(--ink-2);line-height:1.6;margin-bottom:11px}
+  .wait{padding:8px 0;border-bottom:1px solid var(--line-soft)}
+  .wait:last-child{border-bottom:none}
+  .wait .t{font-size:12.3px;font-weight:600;margin-bottom:2px}
+  .wait .d{font-size:10.5px;color:var(--ink-3)}
+  .waitnote{font-size:11px;color:var(--ink-3);line-height:1.55;margin-top:11px}
+
+  /* DAFTAR POST */
+  .post{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line-soft)}
+  .post:last-child{border-bottom:none}
+  .post .dt{font-size:11px;color:var(--ink-3);white-space:nowrap;width:48px;flex:none;
+    font-variant-numeric:tabular-nums;padding-top:1px}
+  .post .bd{flex:1;min-width:0}
+  .post .bd b{display:block;font-size:12.5px;font-weight:600}
+  .post .bd .tg{font-size:10px;color:var(--ink-3)}
+  .post a.lk{font-size:11px;font-weight:600;text-decoration:none;color:var(--brand);
+    white-space:nowrap;padding-top:1px}
+
+  .note{background:#faf9fb;border:1px solid var(--line-soft);border-radius:9px;padding:13px}
+  .note p{font-size:12.6px;line-height:1.65;white-space:pre-line}
+
+  .empty{font-size:12px;color:var(--ink-3);line-height:1.6}
+
+  .foot{padding:20px;text-align:center}
+  .foot .l{font-size:11px;color:var(--ink-3);line-height:1.6}
+  .foot .pdf{margin-top:12px;font-size:12px;font-weight:600;color:var(--ink-2);
+    border:1px solid var(--line);border-radius:7px;padding:9px 16px;display:inline-block;
+    background:var(--surface)}
+
+  .screen{padding:48px 26px;text-align:center}
+  .screen h2{font-size:17px;margin-bottom:8px}
+  .screen p{font-size:13px;color:var(--ink-2);line-height:1.6}
+
+  .banner{padding:11px 20px;font-size:12px;line-height:1.55;border-bottom:1px solid var(--line);
+    background:#fff8e6;color:#7a5c12}
+
+  /* Cetak: tombol dan latar dibuang, lebar dilepas supaya tidak terpotong
+     di kertas. Dipakai klien yang menyimpan laporan sebagai PDF. */
+  @media print{
+    body{background:#fff}
+    .wrap{max-width:none}
+    .foot .pdf{display:none}
+    .sec{border-bottom:1px solid var(--line);break-inside:avoid}
+    .hd{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="root">
+  <div class="screen"><h2>Memuat laporan…</h2><p>Sebentar ya.</p></div>
+</div>
+
+<script>
+/* =========================================================================
+   Halaman laporan klien — hanya baca, tidak ada tombol yang mengubah apa pun.
+   Sengaja tanpa kerangka kerja apa pun: dibuka dari link WhatsApp, sering di
+   jaringan lambat, dan satu file polos memuat jauh lebih cepat.
+
+   Angka performa di sini adalah SALINAN yang dibuat saat laporan di-generate,
+   bukan bacaan langsung dari koleksi internal. Koleksi itu juga menyimpan
+   nilai kontrak klien, dan halaman ini bisa dibuka siapa pun yang pegang link.
+   ========================================================================= */
+
+var firebaseConfig = {
+  apiKey: "AIzaSyAp3pc0-U1bSbB1pWtDTNIBjGI8Emq9Uys",
+  authDomain: "ubah-project-tracker.firebaseapp.com",
+  projectId: "ubah-project-tracker",
+  storageBucket: "ubah-project-tracker.firebasestorage.app",
+  messagingSenderId: "255038719115",
+  appId: "1:255038719115:web:31d4d2ed0192d96bd8808e",
+};
+
+var REPORT_COLLECTION = "ubah_tracker_report";
+var BRAND_FALLBACK    = "#58279D";
+
+// Harus sama urutan dan labelnya dengan METRIC_FIELDS di index.html.
+var METRIC_FIELDS = [
+  ["followers",     "Followers akhir bulan"],
+  ["followersAdd",  "Pertambahan followers"],
+  ["reach",         "Akun terjangkau"],
+  ["engaged",       "Akun berinteraksi"],
+  ["views",         "Tayangan"],
+  ["profileVisits", "Kunjungan profil"],
+  ["linkClicks",    "Klik tautan"],
+  ["likes",         "Suka"],
+  ["comments",      "Komentar"],
+  ["saves",         "Simpanan"],
+  ["shares",        "Dibagikan"]
+];
+// Angka yang sudah berupa selisih. Membandingkannya dengan bulan lalu sebagai
+// persentase tidak berarti apa-apa ("pertambahan followers naik 12%"), jadi
+// pembandingnya dimatikan untuk field ini.
+var NO_DELTA = { followersAdd:1 };
+
+var root = document.getElementById("root");
+var db = null, token = "", doc = null, unsubDoc = null;
+
+/* ---------- alat bantu ---------- */
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function qs(name){
+  var m = new RegExp("[?&]" + name + "=([^&]+)").exec(window.location.search);
+  return m ? decodeURIComponent(m[1].replace(/\+/g," ")) : "";
+}
+var BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+var BULAN_PANJANG = ["Januari","Februari","Maret","April","Mei","Juni","Juli",
+  "Agustus","September","Oktober","November","Desember"];
+function fmtDate(iso){
+  if(!iso) return "";
+  var p = String(iso).slice(0,10).split("-");
+  if(p.length !== 3) return iso;
+  return Number(p[2]) + " " + BULAN[Number(p[1]) - 1];
+}
+function monthLabel(ym){
+  var p = String(ym || "").split("-");
+  if(p.length < 2) return "";
+  return BULAN_PANJANG[Number(p[1]) - 1] + " " + p[0];
+}
+// Pemisah ribuan gaya Indonesia. toLocaleString tidak dipakai supaya hasilnya
+// sama di semua ponsel, termasuk yang bahasanya disetel ke Inggris.
+function num(n){
+  var s = String(Math.abs(Math.round(n)));
+  var out = "";
+  for(var i = 0; i < s.length; i++){
+    if(i > 0 && (s.length - i) % 3 === 0) out += ".";
+    out += s[i];
+  }
+  return (n < 0 ? "-" : "") + out;
+}
+// Hanya angka betulan yang dianggap terisi. null, undefined, dan string kosong
+// semuanya berarti "belum diisi" — BUKAN nol. Kalau dipaksa nol, klien membaca
+// akun terjangkau nol padahal cuma belum sempat dicatat.
+function isNum(v){ return typeof v === "number" && isFinite(v); }
+function safeUrl(raw){
+  var s = String(raw || "").trim();
+  return /^https?:\/\//i.test(s) ? s : "";
+}
+function isOpen(){
+  if(!doc) return false;
+  if(doc.archived) return false;
+  return Date.now() < (doc.expiresAtMs || 0);
+}
+
+/* ---------- bagian-bagian ---------- */
+// Warna brand klien dipasang ke variabel CSS, bukan cuma ke header. Batang progress
+// dan tautan ikut memakainya — kalau tidak, laporan berlogo pink menampilkan batang
+// ungu UBAH dan terbaca seperti template yang lupa diganti.
+function applyBrand(){
+  var b = doc.brand || {};
+  var color = /^#[0-9A-Fa-f]{6}$/.test(b.color || "") ? b.color : BRAND_FALLBACK;
+  try{ document.documentElement.style.setProperty("--brand", color); }catch(e){}
+  return color;
+}
+
+function headerHtml(){
+  var b = doc.brand || {};
+  var color = applyBrand();
+  var tone = b.logoTone === "dark" ? "dark-logo" : "";
+  var h = '<div class="hd ' + tone + '" style="background:' +
+    (tone ? "#fff" : esc(color)) + '">';
+  h += '<div class="by">UBAH DIGITAL</div>';
+  if(b.logo) h += '<img class="logo" src="' + esc(b.logo) + '" alt="">';
+  else h += '<div class="cname">' + esc(doc.client || "") + '</div>';
+  h += '<h1>Laporan Konten</h1>';
+  h += '<div class="per">' + esc(doc.periodLabel ||
+    (fmtDate(doc.from) + " – " + fmtDate(doc.to))) + '</div>';
+  h += '</div>';
+  return h;
+}
+
+function ringkasanHtml(){
+  var del = doc.delivered || [], up = doc.upcoming || [], rows = doc.targetRows || [];
+  var h = '<div class="sec"><h2>RINGKASAN PERIODE INI</h2>';
+
+  // Kalau target kontrak ada, angka besarnya "X dari Y". Kalau tidak, cuma jumlah
+  // yang tayang — tidak dikarang targetnya.
+  var totalTarget = 0, totalDone = 0, totalTayang = 0;
+  for(var i = 0; i < rows.length; i++){
+    totalTarget += Number(rows[i].target) || 0;
+    totalDone   += Number(rows[i].done) || 0;
+    totalTayang += Number(rows[i].tayang) || 0;
+  }
+
+  if(rows.length && totalTarget > 0){
+    h += '<div class="big"><b>' + num(totalDone) + '</b><span>dari ' +
+      num(totalTarget) + ' deliverable</span></div>';
+    h += '<div class="bigsub">' + num(totalTayang) + ' sudah tayang';
+    if(totalDone > totalTayang){
+      h += ' · ' + num(totalDone - totalTayang) + ' siap tayang menunggu jadwal';
+    }
+    h += '</div>';
+
+    for(var j = 0; j < rows.length; j++){
+      var r = rows[j];
+      var t = Number(r.target) || 0;
+      var pTayang = t > 0 ? Math.min(100, (Number(r.tayang)||0) / t * 100) : 0;
+      var pSiap   = t > 0 ? Math.min(100 - pTayang,
+        Math.max(0, ((Number(r.done)||0) - (Number(r.tayang)||0)) / t * 100)) : 0;
+      h += '<div class="row"><div class="rowtop">' +
+        '<span class="n">' + esc(r.label) + '</span>' +
+        '<span class="v">' + num(r.done) + ' / ' + num(t) + '</span></div>' +
+        '<div class="bar">' +
+          '<i class="solid" style="width:' + pTayang.toFixed(1) + '%"></i>' +
+          '<i class="pale" style="width:' + pSiap.toFixed(1) + '%"></i>' +
+        '</div></div>';
+    }
+    h += '<div class="legend">' +
+      '<span><i class="dot"></i> Sudah tayang</span>' +
+      '<span><i class="dot pale"></i> Siap, menunggu jadwal</span></div>';
+  } else {
+    h += '<div class="big"><b>' + num(del.length) + '</b><span>konten sudah tayang</span></div>';
+    h += '<div class="bigsub">' +
+      (up.length ? num(up.length) + ' sudah siap dan terjadwal tayang berikutnya'
+                 : 'Di periode ' + esc(doc.periodLabel || "") ) + '</div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function angkaHtml(){
+  if(!doc.showMetrics) return "";
+  var m = doc.metrics || {}, p = doc.prevMetrics || {};
+  var adaPembanding = false;
+  for(var k in p){ if(isNum(p[k])) { adaPembanding = true; break; } }
+
+  var terisi = 0;
+  for(var i = 0; i < METRIC_FIELDS.length; i++){
+    if(isNum(m[METRIC_FIELDS[i][0]])) terisi++;
+  }
+
+  var h = '<div class="sec"><h2>PERFORMA AKUN ' +
+    esc((monthLabel(doc.ym) || "").toUpperCase()) + '</h2>';
+
+  if(terisi === 0){
+    h += '<div class="empty">Angka performa bulan ini belum diisi. ' +
+      'Bagian lain di laporan ini tetap lengkap.</div></div>';
+    return h;
+  }
+
+  h += '<div class="mgrid">';
+  for(var j = 0; j < METRIC_FIELDS.length; j++){
+    var key = METRIC_FIELDS[j][0], label = METRIC_FIELDS[j][1];
+    var v = m[key], pv = p[key];
+    h += '<div class="m"><div class="k">' + esc(label) + '</div>';
+    if(isNum(v)){
+      h += '<div class="v">' + (key === "followersAdd" && v > 0 ? "+" : "") + num(v) + '</div>';
+      if(isNum(pv) && pv !== 0 && !NO_DELTA[key]){
+        var d = (v - pv) / Math.abs(pv) * 100;
+        var cls = Math.abs(d) < 0.5 ? "flat" : (d > 0 ? "up" : "down");
+        var tanda = Math.abs(d) < 0.5 ? "" : (d > 0 ? "▲ " : "▼ ");
+        h += '<div class="d ' + cls + '">' + tanda +
+          (Math.abs(d) < 0.5 ? "sama dengan bulan lalu"
+            : Math.abs(d).toFixed(Math.abs(d) < 10 ? 1 : 0) + "% vs bulan lalu") + '</div>';
+      }
+    } else {
+      h += '<div class="v empty">belum diisi</div>';
+    }
+    h += '</div>';
+  }
+  h += '</div>';
+
+  if(terisi < METRIC_FIELDS.length){
+    h += '<div class="mnote">' + num(METRIC_FIELDS.length - terisi) +
+      ' angka belum diisi dan ditulis apa adanya — tidak diisi nol, supaya tidak ' +
+      'terbaca seolah tidak ada hasilnya.</div>';
+  }
+  if(!adaPembanding){
+    h += '<div class="mnote">Perbandingan dengan bulan sebelumnya belum bisa ' +
+      'ditampilkan karena ini bulan pertama yang dicatat. Mulai bulan depan ' +
+      'perbandingannya ikut muncul.</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function menungguHtml(){
+  var w = doc.waiting || [];
+  if(!w.length) return "";
+  var h = '<div class="sec"><h2>INFORMASI TAMBAHAN</h2><div class="extra">';
+  h += '<div class="lead">Di luar yang sudah tayang, ada ' + num(w.length) +
+    ' konten yang sudah selesai dikerjakan dan menunggu persetujuan Anda.</div>';
+  for(var i = 0; i < w.length; i++){
+    var it = w[i];
+    h += '<div class="wait"><div class="t">' +
+      esc((it.format ? it.format + " — " : "") + (it.title || "")) + '</div>';
+    // Tanggal kirim, bukan cuma "menunggu sekian hari". Klien perlu bisa mengecek
+    // sendiri di catatannya — kalau cuma hitungan hari, tidak ada yang bisa dirujuk.
+    if(it.since){
+      h += '<div class="d">Dikirim ' + esc(fmtDate(it.since)) +
+        (it.days != null ? ' · ' + num(it.days) + ' hari lalu' : '') + '</div>';
+    }
+    h += '</div>';
+  }
+  h += '<div class="waitnote">Begitu disetujui, kami jadwalkan tayang paling cepat ' +
+    'satu hari kerja berikutnya.</div>';
+  h += '</div></div>';
+  return h;
+}
+
+function tayangHtml(){
+  var d = doc.delivered || [];
+  // Kalau daftarnya dipotong karena terlalu panjang, jumlah di judul tetap yang
+  // sebenarnya — klien tidak boleh membaca angka yang lebih kecil dari kenyataan.
+  var total = typeof doc.deliveredTotal === "number" ? doc.deliveredTotal : d.length;
+  var h = '<div class="sec"><h2>SUDAH TAYANG (' + num(total) + ')</h2>';
+  if(total > d.length){
+    h += '<div class="mnote" style="margin:0 0 10px">Ditampilkan ' + num(d.length) +
+      ' yang terbaru dari ' + num(total) + '. Untuk daftar lengkapnya, hubungi tim UBAH.</div>';
+  }
+  if(!d.length){
+    h += '<div class="empty">Belum ada konten yang tayang di periode ini.</div></div>';
+    return h;
+  }
+  for(var i = 0; i < d.length; i++){
+    var it = d[i], url = safeUrl(it.link);
+    h += '<div class="post"><div class="dt">' + esc(fmtDate(it.date)) + '</div>' +
+      '<div class="bd"><b>' + esc(it.title || "") + '</b>' +
+      '<span class="tg">' + esc(it.format || "") + '</span></div>' +
+      (url ? '<a class="lk" href="' + esc(url) +
+        '" target="_blank" rel="noopener noreferrer">Lihat</a>' : '') +
+      '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function berikutnyaHtml(){
+  var u = doc.upcoming || [];
+  if(!u.length) return "";
+  var h = '<div class="sec"><h2>SUDAH SIAP, TAYANG BERIKUTNYA</h2>';
+  for(var i = 0; i < u.length; i++){
+    h += '<div class="post"><div class="dt">' + esc(fmtDate(u[i].date)) + '</div>' +
+      '<div class="bd"><b>' + esc(u[i].title || "") + '</b>' +
+      '<span class="tg">' + esc(u[i].format || "") + '</span></div></div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function catatanHtml(){
+  var n = String(doc.note || "").trim();
+  if(!n) return "";
+  return '<div class="sec"><h2>CATATAN DARI TIM</h2>' +
+    '<div class="note"><p>' + esc(n) + '</p></div></div>';
+}
+
+function footHtml(){
+  var h = '<div class="foot"><div class="l">Laporan ini disusun otomatis dari ' +
+    'tracker UBAH Digital<br>untuk ' + esc(doc.client || "") +
+    (doc.createdAt ? ' · ' + esc(fmtDate(doc.createdAt)) : '') + '</div>';
+  h += '<button class="pdf" onclick="window.print()">Simpan sebagai PDF</button></div>';
+  return h;
+}
+
+function render(){
+  if(!doc) return;
+  var h = headerHtml();
+  if(!isOpen()){
+    h += '<div class="banner">Laporan ini sudah melewati masa berlakunya, jadi ' +
+      'angkanya mungkin tidak lagi terbaru. Minta laporan terbaru ke tim UBAH.</div>';
+  }
+  // Urutan ini disengaja. Yang ditanyakan klien adalah "bulan ini naik berapa", jadi
+  // konten yang sudah tayang harus datang sebelum apa pun yang masih tertunda. Daftar
+  // menunggu persetujuan ditaruh paling bawah sebagai informasi tambahan — kalau di
+  // atas, laporan terbaca sebagai daftar pekerjaan yang belum selesai.
+  h += ringkasanHtml();
+  h += angkaHtml();
+  h += tayangHtml();
+  h += berikutnyaHtml();
+  h += catatanHtml();
+  h += menungguHtml();
+  h += footHtml();
+  root.innerHTML = h;
+}
+
+function fatal(judul, pesan){
+  root.innerHTML = '<div class="screen"><h2>' + esc(judul) + '</h2><p>' + esc(pesan) + '</p></div>';
+}
+
+/* ---------- mulai ---------- */
+(function start(){
+  token = qs("k").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
+  if(!token){
+    fatal("Link tidak lengkap", "Alamatnya kurang kode laporan. Minta link terbaru ke tim UBAH.");
+    return;
+  }
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  }catch(e){
+    fatal("Gagal memuat", "Coba buka ulang halaman ini. Kalau tetap gagal, hubungi tim UBAH.");
+    return;
+  }
+
+  // onSnapshot, bukan get(): kalau tim menekan "Perbarui laporan", halaman yang
+  // sedang dibuka klien ikut terbarui tanpa perlu dimuat ulang.
+  unsubDoc = db.collection(REPORT_COLLECTION).doc(token).onSnapshot(function(snap){
+    if(!snap.exists){
+      fatal("Laporan tidak ditemukan", "Link ini mungkin sudah dihapus. Minta link terbaru ke tim UBAH.");
+      return;
+    }
+    doc = snap.data();
+    render();
+  }, function(){
+    fatal("Tidak bisa membuka laporan", "Periksa koneksi lalu buka ulang. Kalau tetap gagal, hubungi tim UBAH.");
+  });
+})();
+</script>
+</body>
+</html>
