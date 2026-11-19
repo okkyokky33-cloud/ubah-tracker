@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Laporan Konten</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<style>
+:root{--brand:#58279D;--tint:#f1ebf8;--c:#58279D;--ink:#141414;--mid:#55504d;--soft:#8c8785;
+  --hair:#ece8e6;--bg:#f6f3f2;--ok:#2f6b4f;--dn:#9d4a40}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:520px;margin:0 auto;background:#fff;min-height:100vh}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
+
+.strip{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 18px;
+  border-bottom:1px solid var(--hair);font-size:12px;color:var(--soft)}
+.strip b{color:var(--ink);font-weight:650;font-size:13px;text-align:right}
+
+.banner{padding:11px 18px;font-size:12.5px;line-height:1.55;background:#fff8e6;color:#7a5c12;
+  border-bottom:1px solid var(--hair)}
+
+/* Sampul laporan: gradasi warna brand (versi gelap --c di kanan, tempat logo UBAH putih). */
+.lcov{height:112px;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start;
+  background:linear-gradient(120deg,var(--brand) 0%,var(--c) 100%)}
+.lcov .badge{background:rgba(255,255,255,.94);color:var(--c);font-size:10.5px;letter-spacing:1.6px;font-weight:700;
+  text-transform:uppercase;padding:5px 11px;border-radius:99px}
+.lcov .ub{height:22px;width:auto}
+.top{padding:0 18px 4px}
+.top .prof{margin-top:-40px;align-items:flex-end}
+.top .ring{background:#fff;padding:4px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.top .ring .av{border:0}
+.top .nums{padding-bottom:4px}
+.who{font-size:13px;color:var(--soft);margin-top:1px}
+.prof{display:flex;align-items:center;gap:20px}
+/* Cincin di sekeliling logo meniru cincin cerita Instagram, memakai warna brand klien. */
+.ring{flex:none;width:92px;height:92px;border-radius:50%;padding:3px;
+  background:conic-gradient(from 210deg,var(--brand),var(--tint),var(--c),var(--brand))}
+.ring .av{width:100%;height:100%;border-radius:50%;background:var(--brand);border:3px solid #fff;
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ring .av.white{background:#fff}
+.ring .av img{width:58px;max-height:58px;height:auto;object-fit:contain}
+.ring .av b{font-size:30px;font-weight:700;color:#fff}
+.ring .av.white b{color:var(--c)}
+.nums{flex:1;display:flex;justify-content:space-around;text-align:center;gap:6px}
+.nums b{display:block;font-size:22px;font-weight:700;letter-spacing:-.6px;line-height:1.15}
+.nums span{font-size:12px;color:var(--mid)}
+.name{margin-top:14px;font-size:22px;font-weight:700;letter-spacing:-.5px;line-height:1.15}
+.bio{font-size:14px;color:var(--mid);margin-top:3px;line-height:1.5}
+
+/* Sorotan: jumlah per format. Diketuk untuk menyaring kisi. */
+.hl{display:flex;gap:16px;padding:18px 18px 16px;overflow-x:auto;scrollbar-width:none}
+.hl::-webkit-scrollbar{display:none}
+.hl button{flex:none;width:66px;text-align:center}
+.hl .o{width:66px;height:66px;border-radius:50%;border:1.5px solid var(--hair);display:flex;
+  align-items:center;justify-content:center;font-size:21px;font-weight:700;letter-spacing:-.5px;
+  color:var(--c);background:#fff;transition:background .15s,border-color .15s}
+.hl .l{display:block;font-size:11.5px;color:var(--mid);margin-top:6px}
+.hl button[aria-pressed=true] .o{background:var(--tint);border-color:var(--c)}
+.hl button[aria-pressed=true] .l{color:var(--ink);font-weight:650}
+
+.gridhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:13px 18px 11px;border-top:1px solid var(--hair)}
+.gridhead b{font-size:13.5px;font-weight:650}
+.gridhead span{font-size:11.5px;color:var(--soft);text-align:right}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+/* 3:4 seperti kisi profil Instagram sekarang. Desain 4:5 terpotong tipis kiri-kanan,
+   sama dengan yang dilihat klien di profilnya sendiri. */
+.tile{position:relative;aspect-ratio:3/4;display:block;background:#efecea;overflow:hidden}
+.tile[hidden]{display:none}
+.tile img{width:100%;height:100%;object-fit:cover;transition:transform .25s}
+.tile:active img{transform:scale(1.04)}
+.tile .dt{position:absolute;left:0;right:0;bottom:0;padding:18px 7px 6px;font-size:10.5px;font-weight:600;
+  color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.5))}
+.tile .pl{position:absolute;top:8px;right:9px;width:0;height:0;border-left:11px solid #fff;
+  border-top:7px solid transparent;border-bottom:7px solid transparent;filter:drop-shadow(0 0 2px rgba(0,0,0,.5))}
+.tile .st{position:absolute;top:8px;right:8px;width:13px;height:13px;border:2px solid #fff;border-radius:3px;
+  box-shadow:3px -3px 0 -1px rgba(255,255,255,.75);filter:drop-shadow(0 0 2px rgba(0,0,0,.45))}
+.tile .noimg{position:absolute;inset:0;background:var(--tint);color:var(--c);font-size:12px;font-weight:650;
+  line-height:1.35;padding:22px 9px;display:flex;align-items:center;justify-content:center;text-align:center;
+  overflow:hidden}
+.tile .noimg + .st{border-color:var(--c);box-shadow:3px -3px 0 -1px var(--c);filter:none;opacity:.6}
+.tile .noimg + .pl{border-left-color:var(--c);filter:none;opacity:.6}
+.tile .noimg ~ .dt{background:none;color:var(--c)}
+.gridnote{padding:12px 18px 0;font-size:12px;color:var(--soft);line-height:1.55}
+.emptygrid{padding:26px 18px;font-size:13.5px;color:var(--mid);line-height:1.6;border-top:1px solid var(--hair)}
+
+details{margin:16px 18px 0;border:1px solid var(--hair);border-radius:12px;overflow:hidden}
+summary{padding:13px 15px;font-size:13.5px;font-weight:600;list-style:none;cursor:pointer}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"lihat";float:right;color:var(--c);font-weight:600;font-size:12.5px}
+details[open] summary::after{content:"tutup"}
+.li{display:flex;gap:12px;padding:10px 15px;border-top:1px solid var(--hair)}
+.li[hidden]{display:none}
+.li .d{font-size:12px;color:var(--soft);width:44px;flex:none;padding-top:1px}
+.li .t{font-size:13.5px;line-height:1.4}
+.li .t em{font-style:normal;display:block;font-size:11.5px;color:var(--soft);margin-top:1px}
+
+.blk{padding:26px 18px 0}
+.blk h2{font-size:15px;font-weight:700;letter-spacing:-.2px;margin-bottom:11px}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.kpi > div{border:1px solid var(--hair);border-radius:12px;padding:13px 11px 12px;min-width:0}
+.kpi b{display:block;font-size:18px;font-weight:700;letter-spacing:-.5px}
+.kpi .k{font-size:11px;color:var(--soft);display:block;line-height:1.3;margin-top:1px}
+.cmp{margin-top:11px;display:flex;flex-direction:column;gap:4px}
+.cmp i{display:block;height:5px;border-radius:3px;background:var(--hair)}
+.cmp i.now{background:var(--c)}
+.kpi em{font-style:normal;font-size:11px;font-weight:650;color:var(--ok);display:block;margin-top:8px}
+.kpi em.dn{color:var(--dn)}
+.kpi em.fl{color:var(--soft)}
+.leg{display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--soft)}
+.leg i{display:inline-block;width:14px;height:5px;border-radius:3px;background:var(--hair);margin-right:5px;vertical-align:2px}
+.leg i.now{background:var(--c)}
+.tr{display:flex;justify-content:space-between;gap:12px;padding:9px 15px;border-top:1px solid var(--hair);font-size:13.5px}
+.tr span{color:var(--mid)}
+.tr b{font-weight:600}
+.tr b.e{font-weight:400;color:var(--soft)}
+.mnote{font-size:12px;color:var(--soft);line-height:1.55;margin-top:10px}
+
+.trow{margin-bottom:12px}
+.trow .tt{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:5px}
+.trow .tt b{font-weight:600}
+.tbar{height:7px;border-radius:4px;background:var(--hair);overflow:hidden;display:flex}
+.tbar i{display:block;height:100%;background:var(--c)}
+.tbar i.pale{opacity:.35}
+
+.next{display:flex;gap:14px;align-items:center;padding:10px 0;border-top:1px solid var(--hair)}
+.next:first-of-type{border-top:none;padding-top:2px}
+.next .cal{flex:none;width:44px;border-radius:9px;background:var(--tint);text-align:center;padding:6px 0 5px}
+.next .cal b{display:block;font-size:16px;font-weight:700;color:var(--c);line-height:1.1}
+.next .cal span{font-size:10px;color:var(--c)}
+.next .t{font-size:14px;font-weight:500}
+.next .t em{font-style:normal;display:block;font-size:11.5px;color:var(--soft);font-weight:400}
+
+.note{border-left:3px solid var(--brand);padding:2px 0 2px 14px;font-size:14px;color:var(--mid);
+  line-height:1.7;white-space:pre-line}
+
+.pend{margin:26px 18px 0;padding:15px 16px;border-radius:12px;background:var(--bg)}
+.pend h2{font-size:13.5px;font-weight:650;margin-bottom:3px}
+.pend .l{font-size:12.5px;color:var(--soft);line-height:1.55;margin-bottom:9px}
+.pend .w{font-size:13.5px;padding:4px 0}
+.pend .w em{font-style:normal;color:var(--soft);font-size:11.5px;margin-left:6px}
+.pend .pvl{font-size:12px;color:var(--c,#58279D);font-weight:600;margin-left:6px;text-decoration:underline;text-underline-offset:2px}
+.pvbtn{display:block;margin-top:12px;text-align:center;background:var(--c,#58279D);color:#fff;border-radius:10px;padding:11px 12px;
+  font-size:14px;font-weight:650;text-decoration:none}
+@media print{.pvbtn,.pend .pvl{display:none}}
+
+.foot{margin-top:28px;padding:20px 18px 32px;border-top:1px solid var(--hair);font-size:11.5px;color:var(--soft);
+  line-height:1.7;display:flex;justify-content:space-between;align-items:center;gap:14px}
+.pdf{font-size:13px;font-weight:600;color:var(--ink);border:1px solid var(--hair);border-radius:9px;
+  padding:10px 16px;background:#fff;white-space:nowrap}
+
+.screen{padding:56px 24px;text-align:center}
+.screen h2{font-size:17px;margin-bottom:8px}
+.screen p{font-size:13.5px;color:var(--mid);line-height:1.6}
+.spin{width:26px;height:26px;border:3px solid var(--hair);border-top-color:var(--brand);
+  border-radius:50%;margin:0 auto 14px;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+@media (min-width:900px){.wrap{max-width:780px}.grid{gap:4px}.tile .dt{font-size:12px}.top{padding-top:30px}}
+@media print{.pdf,.hl{display:none}body{background:#fff}details{display:none}
+  .lcov,.tile .dt,.ring,.ring .av,.cmp i,.tbar i,.next .cal{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+@media (prefers-reduced-motion:reduce){.tile img,.hl .o{transition:none}.spin{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap" id="root">
+  <div class="screen"><div class="spin"></div><p>Membuka laporan…</p></div>
+</div>
+
+<script>
+/* =========================================================================
+   Halaman laporan klien — hanya baca. Tanpa kerangka kerja: dibuka dari link
+   WhatsApp, sering di jaringan lambat, dan satu file polos memuat lebih cepat.
+
+   Bentuknya meniru profil Instagram: kisi tiga kolom, tiap kotak membuka
+   postingan aslinya. Gambar kotak adalah salinan kecil 3:4 yang dibuat saat
+   laporan disusun (subkoleksi thumbs), bukan gambar asli dari kartu.
+   ========================================================================= */
+
+var firebaseConfig = {
+  apiKey: "AIzaSyAp3pc0-U1bSbB1pWtDTNIBjGI8Emq9Uys",
+  authDomain: "ubah-project-tracker.firebaseapp.com",
+  projectId: "ubah-project-tracker",
+  storageBucket: "ubah-project-tracker.firebasestorage.app",
+  messagingSenderId: "255038719115",
+  appId: "1:255038719115:web:31d4d2ed0192d96bd8808e",
+};
+
+var REPORT_COLLECTION = "ubah_tracker_report";
+var BRAND_FALLBACK    = "#58279D";
+
+// Tiga yang pertama jadi kartu besar, sisanya masuk "Angka selengkapnya".
+var KPI_MAIN = [
+  ["followers", "followers"],
+  ["reach",     "akun terjangkau"],
+  ["engaged",   "akun berinteraksi"]
+];
+var KPI_REST = [
+  ["views",         "Tayangan"],
+  ["profileVisits", "Kunjungan profil"],
+  ["linkClicks",    "Klik tautan"],
+  ["likes",         "Suka"],
+  ["comments",      "Komentar"],
+  ["saves",         "Simpanan"],
+  ["shares",        "Dibagikan"]
+];
+
+var root = document.getElementById("root");
+var db = null, token = "", doc = null, thumbs = {}, thumbsFor = "", filter = "";
+
+/* ---------- alat bantu ---------- */
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function qs(name){
+  var m = new RegExp("[?&]" + name + "=([^&]+)").exec(window.location.search);
+  return m ? decodeURIComponent(m[1].replace(/\+/g," ")) : "";
+}
+var BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+var BULAN_PANJANG = ["Januari","Februari","Maret","April","Mei","Juni","Juli",
+  "Agustus","September","Oktober","November","Desember"];
+function parts(iso){
+  var p = String(iso || "").slice(0,10).split("-");
+  return p.length === 3 ? p : null;
+}
+function fmtDate(iso){
+  var p = parts(iso);
+  return p ? Number(p[2]) + " " + BULAN[Number(p[1]) - 1] : "";
+}
+function fmtDateLong(iso){
+  var p = parts(iso);
+  return p ? Number(p[2]) + " " + BULAN_PANJANG[Number(p[1]) - 1] + " " + p[0] : "";
+}
+function monthName(ym){
+  var p = String(ym || "").split("-");
+  return p.length < 2 ? "" : (BULAN_PANJANG[Number(p[1]) - 1] || "");
+}
+function num(n){
+  var s = String(Math.abs(Math.round(n)));
+  var out = "";
+  for(var i = 0; i < s.length; i++){
+    if(i > 0 && (s.length - i) % 3 === 0) out += ".";
+    out += s[i];
+  }
+  return (n < 0 ? "-" : "") + out;
+}
+function isNum(v){ return typeof v === "number" && isFinite(v); }
+function safeUrl(raw){
+  var s = String(raw || "").trim();
+  return /^https?:\/\//i.test(s) ? s : "";
+}
+// Hanya data:image yang boleh jadi src. Isi dokumen ditulis tim, tapi halaman ini
+// publik — jangan sampai ada jalan menyelipkan alamat lain lewat kolom gambar.
+function safeImg(raw){
+  var s = String(raw || "");
+  return /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(s) ? s : "";
+}
+function isOpen(){
+  if(!doc) return false;
+  if(doc.archived) return false;
+  return Date.now() < (doc.expiresAtMs || 0);
+}
+
+/* ---------- warna brand ---------- */
+var UBAH_LOGO = "data:image/png;base64,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";
+function hexRgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+function rgbHex(c){
+  return "#" + c.map(function(v){
+    var s = Math.max(0, Math.min(255, Math.round(v))).toString(16);
+    return s.length < 2 ? "0" + s : s;
+  }).join("");
+}
+function lum(c){
+  var a = c.map(function(v){ v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+}
+function contrastOnWhite(c){ return 1.05 / (lum(c) + 0.05); }
+// Warna brand yang terang (pink, kuning) tidak terbaca sebagai tulisan di atas putih.
+// Digelapkan sedikit demi sedikit sampai kontrasnya 4,5:1; warna aslinya tetap
+// dipakai untuk bidang isi seperti cincin dan garis.
+function textColorFrom(hex){
+  var c = hexRgb(hex), i = 0;
+  while(contrastOnWhite(c) < 4.5 && i < 40){ c = c.map(function(v){ return v * 0.94; }); i++; }
+  return rgbHex(c);
+}
+function tintFrom(hex){
+  var c = hexRgb(hex);
+  return rgbHex(c.map(function(v){ return v + (255 - v) * 0.86; }));
+}
+function applyBrand(){
+  var b = doc.brand || {};
+  var color = /^#[0-9A-Fa-f]{6}$/.test(b.color || "") ? b.color : BRAND_FALLBACK;
+  var st = document.documentElement.style;
+  try{
+    st.setProperty("--brand", color);
+    st.setProperty("--c", textColorFrom(color));
+    st.setProperty("--tint", tintFrom(color));
+  }catch(e){}
+  return color;
+}
+
+/* ---------- bagian-bagian ---------- */
+function periodTitle(){
+  var f = parts(doc.from), t = parts(doc.to);
+  if(f && t && f[0] === t[0] && f[1] === t[1]) return BULAN_PANJANG[Number(f[1]) - 1] + " " + f[0];
+  return doc.periodLabel || "";
+}
+function periodSentence(){
+  var f = parts(doc.from), t = parts(doc.to);
+  if(!f || !t) return doc.periodLabel || "";
+  if(f[0] === t[0] && f[1] === t[1])
+    return Number(f[2]) + " sampai " + Number(t[2]) + " " + BULAN_PANJANG[Number(t[1]) - 1];
+  return fmtDateLong(doc.from) + " sampai " + fmtDateLong(doc.to);
+}
+
+function topHtml(){
+  var b = doc.brand || {}, del = doc.delivered || [], up = doc.upcoming || [];
+  var total = isNum(doc.deliveredTotal) ? doc.deliveredTotal : del.length;
+  var logo = safeImg(b.logo);
+  var white = b.logoTone === "dark";      // logo gelap butuh latar putih
+  var m = doc.metrics || {};
+
+  // Sampul (19 Nov): gradasi warna brand + badge, supaya laporan langsung terbedakan dari
+  // halaman preview. Gaya profil Instagram di bawahnya tetap (keputusan 13 Nov).
+  var monthly = (function(){ var f = parts(doc.from), t = parts(doc.to); return !!(f && t && f[0] === t[0] && f[1] === t[1]); })();
+  var h = '<div class="lcov"><span class="badge">' + (monthly ? "Laporan bulanan" : "Laporan konten") + '</span>' +
+    '<img class="ub" src="' + UBAH_LOGO + '" alt="UBAHdigital"></div>';
+  if(!isOpen()){
+    // Di atas sampul, supaya logo profil yang menumpang ke sampul tidak menutupinya.
+    h = '<div class="banner">' + (doc.archived
+      ? 'Laporan ini sudah ditutup oleh tim UBAH. Isinya masih bisa dibaca, tapi tidak lagi diperbarui.'
+      : 'Laporan ini sudah melewati masa berlakunya, jadi isinya mungkin tidak lagi terbaru. ' +
+        'Minta laporan terbaru ke tim UBAH.') + '</div>' + h;
+  }
+  h += '<div class="top"><div class="prof">';
+  h += '<div class="ring"><span class="av' + (white ? " white" : "") + '">' +
+    (logo ? '<img src="' + logo + '" alt="' + esc(doc.client || "") + '">'
+          : '<b>' + esc(String(doc.client || "?").trim().slice(0,1).toUpperCase()) + '</b>') +
+    '</span></div>';
+  h += '<div class="nums"><div><b>' + num(total) + '</b><span>tayang</span></div>' +
+       '<div><b>' + num(up.length) + '</b><span>terjadwal</span></div>';
+  if(doc.showMetrics && isNum(m.followersAdd)){
+    h += '<div><b>' + (m.followersAdd > 0 ? "+" : "") + num(m.followersAdd) + '</b><span>followers</span></div>';
+  } else {
+    h += '<div><b>' + num((doc.waiting || []).length) + '</b><span>menunggu Anda</span></div>';
+  }
+  h += '</div></div>';
+  h += '<div class="name">Laporan ' + esc(periodTitle() || "") + '</div>';
+  h += '<div class="who">' + esc(doc.client || "") + '</div>';
+  h += '<div class="bio">' + (total
+      ? num(total) + ' konten tayang di Instagram sepanjang ' + esc(periodSentence()) + '.'
+      : 'Belum ada konten yang tayang sepanjang ' + esc(periodSentence()) + '.') + '</div>';
+  h += '</div>';
+  return h;
+}
+
+function formats(){
+  var del = doc.delivered || [], order = ["Reels","Carousel","Feed","Story"], count = {}, out = [];
+  del.forEach(function(d){ var f = d.format || "Lainnya"; count[f] = (count[f] || 0) + 1; });
+  order.forEach(function(f){ if(count[f]){ out.push([f, count[f]]); delete count[f]; } });
+  for(var k in count) out.push([k, count[k]]);
+  return out;
+}
+
+function highlightsHtml(){
+  var del = doc.delivered || [], fs = formats();
+  if(!del.length || fs.length < 2) return "";
+  var h = '<div class="hl" id="hl">';
+  h += '<button aria-pressed="' + (filter === "" ? "true" : "false") + '" data-f="">' +
+       '<span class="o">' + num(del.length) + '</span><span class="l">Semua</span></button>';
+  fs.forEach(function(f){
+    h += '<button aria-pressed="' + (filter === f[0] ? "true" : "false") + '" data-f="' + esc(f[0]) + '">' +
+         '<span class="o">' + num(f[1]) + '</span><span class="l">' + esc(f[0]) + '</span></button>';
+  });
+  h += '</div>';
+  return h;
+}
+
+function glyph(format){
+  if(/reels|video/i.test(format || "")) return '<i class="pl"></i>';
+  if(/carousel/i.test(format || "")) return '<i class="st"></i>';
+  return "";
+}
+
+function gridHtml(){
+  var del = doc.delivered || [];
+  var total = isNum(doc.deliveredTotal) ? doc.deliveredTotal : del.length;
+  if(!del.length){
+    return '<div class="emptygrid">Belum ada konten yang ditandai sudah tayang di periode ini.</div>';
+  }
+  // Terbaru di kiri atas, seperti urutan profil Instagram.
+  var list = del.slice().sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
+  var adaLink = list.some(function(d){ return safeUrl(d.link); });
+
+  var h = '<div class="gridhead"><b>' + (filter ? esc(filter) + ' yang sudah tayang' : 'Sudah tayang') + '</b>' +
+    '<span>' + (adaLink ? 'ketuk gambar untuk membuka postingannya' : '') + '</span></div>';
+  h += '<div class="grid">';
+  list.forEach(function(d){
+    var url = safeUrl(d.link), img = safeImg(thumbs[d.id]);
+    var hidden = (filter && (d.format || "Lainnya") !== filter) ? " hidden" : "";
+    var label = esc((d.title || "") + ", " + (d.format || "") + ", tayang " + fmtDate(d.date));
+    var inner = (img ? '<img src="' + img + '" alt="" loading="lazy">'
+                     : '<span class="noimg">' + esc(d.title || "") + '</span>') +
+                glyph(d.format) + '<span class="dt">' + esc(fmtDate(d.date)) + '</span>';
+    h += url
+      ? '<a class="tile"' + hidden + ' href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" aria-label="' + label + '">' + inner + '</a>'
+      : '<div class="tile"' + hidden + ' aria-label="' + label + '">' + inner + '</div>';
+  });
+  h += '</div>';
+  if(total > del.length){
+    h += '<div class="gridnote">Ditampilkan ' + num(del.length) + ' yang terbaru dari ' + num(total) +
+      ' konten. Untuk daftar lengkapnya, hubungi tim UBAH.</div>';
+  }
+
+  h += '<details><summary>Daftar judul konten</summary>';
+  list.forEach(function(d){
+    var url = safeUrl(d.link);
+    var hidden = (filter && (d.format || "Lainnya") !== filter) ? " hidden" : "";
+    var inner = '<span class="d">' + esc(fmtDate(d.date)) + '</span><span class="t">' + esc(d.title || "") +
+      '<em>' + esc(d.format || "") + '</em></span>';
+    h += url
+      ? '<a class="li"' + hidden + ' href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + inner + '</a>'
+      : '<div class="li"' + hidden + '>' + inner + '</div>';
+  });
+  h += '</details>';
+  return h;
+}
+
+function targetHtml(){
+  var rows = doc.targetRows || [];
+  if(!rows.length) return "";
+  var h = '<div class="blk"><h2>Terhadap target bulan ini</h2>';
+  rows.forEach(function(r){
+    var t = Number(r.target) || 0; if(t <= 0) return;
+    var tay = Number(r.tayang) || 0, done = Number(r.done) || 0;
+    var p1 = Math.min(100, tay / t * 100);
+    var p2 = Math.min(100 - p1, Math.max(0, (done - tay) / t * 100));
+    h += '<div class="trow"><div class="tt"><span>' + esc(r.label) + '</span><b>' + num(done) + ' dari ' + num(t) + '</b></div>' +
+      '<div class="tbar"><i style="width:' + p1.toFixed(1) + '%"></i><i class="pale" style="width:' + p2.toFixed(1) + '%"></i></div></div>';
+  });
+  h += '<div class="leg"><span><i class="now"></i>Sudah tayang</span>' +
+       '<span><i class="now" style="opacity:.35"></i>Siap, menunggu jadwal</span></div></div>';
+  return h;
+}
+
+function angkaHtml(){
+  if(!doc.showMetrics) return "";
+  var m = doc.metrics || {}, p = doc.prevMetrics || {};
+  var all = KPI_MAIN.concat(KPI_REST), terisi = 0, adaPembanding = false;
+  all.forEach(function(f){ if(isNum(m[f[0]])) terisi++; if(isNum(p[f[0]])) adaPembanding = true; });
+  if(isNum(m.followersAdd)) terisi++;
+
+  var h = '<div class="blk"><h2>Performa akun</h2>';
+  if(terisi === 0){
+    h += '<div class="mnote" style="margin:0">Angka performa periode ini belum diisi. ' +
+         'Bagian lain di laporan ini tetap lengkap.</div></div>';
+    return h;
+  }
+
+  h += '<div class="kpi">';
+  KPI_MAIN.forEach(function(f){
+    var key = f[0], v = m[key], pv = p[key];
+    h += '<div>';
+    if(!isNum(v)){
+      h += '<b style="font-size:13px;font-weight:400;color:var(--soft)">belum diisi</b><span class="k">' + f[1] + '</span></div>';
+      return;
+    }
+    h += '<b>' + num(v) + '</b><span class="k">' + f[1] + '</span>';
+    if(isNum(pv) && pv > 0){
+      var mx = Math.max(v, pv) || 1;
+      h += '<div class="cmp"><i class="now" style="width:' + Math.max(4, v / mx * 100).toFixed(0) + '%"></i>' +
+           '<i style="width:' + Math.max(4, pv / mx * 100).toFixed(0) + '%"></i></div>';
+      if(key === "followers" && isNum(m.followersAdd)){
+        h += '<em class="' + (m.followersAdd < 0 ? "dn" : "") + '">' + (m.followersAdd > 0 ? "+" : "") + num(m.followersAdd) + '</em>';
+      } else {
+        var d = (v - pv) / pv * 100;
+        h += Math.abs(d) < 0.5 ? '<em class="fl">sama dengan bulan lalu</em>'
+          : '<em class="' + (d < 0 ? "dn" : "") + '">' + (d > 0 ? "naik " : "turun ") +
+            Math.abs(d).toFixed(Math.abs(d) < 10 ? 1 : 0).replace(".", ",") + '%</em>';
+      }
+    } else if(key === "followers" && isNum(m.followersAdd)){
+      h += '<em class="' + (m.followersAdd < 0 ? "dn" : "") + '">' + (m.followersAdd > 0 ? "+" : "") + num(m.followersAdd) + '</em>';
+    }
+    h += '</div>';
+  });
+  h += '</div>';
+  if(adaPembanding){
+    h += '<div class="leg"><span><i class="now"></i>' + esc(monthName(doc.ym) || "Bulan ini") + '</span>' +
+         '<span><i></i>' + esc(monthName(doc.prevYmLabel) || "Bulan lalu") + '</span></div>';
+  } else {
+    h += '<div class="mnote">Perbandingan dengan bulan sebelumnya belum ada karena ini bulan pertama ' +
+         'yang dicatat. Mulai bulan depan perbandingannya ikut muncul.</div>';
+  }
+  h += '</div>';
+
+  h += '<details><summary>Angka selengkapnya</summary>';
+  KPI_REST.forEach(function(f){
+    var v = m[f[0]];
+    h += '<div class="tr"><span>' + f[1] + '</span>' +
+      (isNum(v) ? '<b>' + num(v) + '</b>' : '<b class="e">belum diisi</b>') + '</div>';
+  });
+  h += '</details>';
+  return h;
+}
+
+function berikutnyaHtml(){
+  var u = doc.upcoming || [];
+  if(!u.length) return "";
+  var h = '<div class="blk"><h2>Tayang berikutnya</h2>';
+  u.forEach(function(it){
+    var p = parts(it.date);
+    h += '<div class="next"><div class="cal"><b>' + (p ? Number(p[2]) : "") + '</b><span>' +
+      (p ? BULAN[Number(p[1]) - 1] : "") + '</span></div><div class="t">' + esc(it.title || "") +
+      '<em>' + esc(it.format || "") + '</em></div></div>';
+  });
+  h += '</div>';
+  return h;
+}
+
+function catatanHtml(){
+  var n = String(doc.note || "").trim();
+  if(!n) return "";
+  return '<div class="blk"><h2>Catatan dari tim</h2><div class="note">' + esc(n) + '</div></div>';
+}
+
+function menungguHtml(){
+  var w = doc.waiting || [];
+  if(!w.length) return "";
+  var h = '<div class="pend"><h2>Menunggu persetujuan Anda</h2>' +
+    '<div class="l">Sudah selesai dikerjakan. Begitu disetujui, kami jadwalkan tayang paling cepat ' +
+    'satu hari kerja berikutnya.</div>';
+  // Link preview aktif: satu tombol kalau semuanya di preview yang sama, kalau tidak
+  // tiap konten diberi tautannya sendiri.
+  var urls = [];
+  w.forEach(function(it){ var u = safeUrl(it.pv); if(u && urls.indexOf(u) < 0) urls.push(u); });
+  var one = urls.length === 1;
+  w.forEach(function(it){
+    var u = safeUrl(it.pv);
+    h += '<div class="w">' + esc(it.title || "") +
+      (it.since ? '<em>dikirim ' + esc(fmtDate(it.since)) + '</em>' : '') +
+      (u && !one ? ' <a class="pvl" href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">Buka preview</a>' : '') + '</div>';
+  });
+  if(one) h += '<a class="pvbtn" href="' + esc(urls[0]) + '" target="_blank" rel="noopener noreferrer">Buka preview untuk menyetujui</a>';
+  h += '</div>';
+  return h;
+}
+
+function footHtml(){
+  return '<div class="foot"><span>Disusun dari tracker UBAH Digital' +
+    (doc.createdAt ? ', ' + esc(fmtDateLong(doc.createdAt)) : '') + '.</span>' +
+    '<button class="pdf" onclick="window.print()">Simpan PDF</button></div>';
+}
+
+function render(){
+  if(!doc) return;
+  applyBrand();
+  try{ document.title = "Laporan Konten " + (doc.client || ""); }catch(e){}
+  root.innerHTML = topHtml() + highlightsHtml() + gridHtml() + targetHtml() + angkaHtml() +
+    berikutnyaHtml() + catatanHtml() + menungguHtml() + footHtml();
+  var hl = document.getElementById("hl");
+  if(hl) hl.addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest("button") : null;
+    if(!b) return;
+    filter = b.getAttribute("data-f") || "";
+    render();
+  });
+}
+
+// Gambar kotak disimpan terpisah dari dokumen laporan supaya dokumen utamanya tetap
+// kecil dan teksnya muncul dulu. Diambil ulang hanya kalau laporannya diperbarui.
+function loadThumbs(){
+  var n = Number(doc.thumbChunks) || 0, key = String(doc.thumbsAt || "") + ":" + n;
+  if(key === thumbsFor) return;
+  thumbsFor = key;
+  var next = {}, left = n;
+  if(!n){ thumbs = {}; return; }
+  for(var i = 0; i < n; i++){
+    db.collection(REPORT_COLLECTION).doc(token).collection("thumbs").doc("c" + i).get()
+      .then(function(s){
+        var m = (s.exists && s.data().m) || {};
+        for(var k in m) next[k] = m[k];
+      })
+      .catch(function(){ /* gambar gagal dimuat — kotaknya jatuh ke judul */ })
+      .then(function(){ if(--left === 0){ thumbs = next; render(); } });
+  }
+}
+
+function fatal(judul, pesan){
+  root.innerHTML = '<div class="screen"><h2>' + esc(judul) + '</h2><p>' + esc(pesan) + '</p></div>';
+}
+
+/* ---------- mulai ---------- */
+(function start(){
+  token = qs("k").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
+  if(!token){
+    fatal("Link tidak lengkap", "Alamatnya kurang kode laporan. Minta link terbaru ke tim UBAH.");
+    return;
+  }
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  }catch(e){
+    fatal("Gagal memuat", "Coba buka ulang halaman ini. Kalau tetap gagal, hubungi tim UBAH.");
+    return;
+  }
+
+  db.collection(REPORT_COLLECTION).doc(token).onSnapshot(function(snap){
+    if(!snap.exists){
+      fatal("Laporan tidak ditemukan", "Link ini mungkin sudah dihapus. Minta link terbaru ke tim UBAH.");
+      return;
+    }
+    doc = snap.data();
+    render();
+    loadThumbs();
+  }, function(){
+    fatal("Tidak bisa membuka laporan", "Periksa koneksi lalu buka ulang. Kalau tetap gagal, hubungi tim UBAH.");
+  });
+})();
+</script>
+</body>
+</html>
