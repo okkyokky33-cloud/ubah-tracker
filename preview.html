@@ -633,6 +633,71 @@ a{color:inherit}
 .sugbox .bb button{flex:1;border-radius:10px;padding:10px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
 .sugbox .bb .y{background:var(--brand);color:#fff;border:0}
 .sugbox .bb .n{background:#fff;border:1px solid var(--hair);color:var(--ink)}
+/* ---- ads swap (21 Nov) ---- */
+.wrap.cm.ads .sw-th.ph{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:9.5px;font-weight:700;color:#8c8785;letter-spacing:.3px}
+.wrap.cm.ads .sw-down{background:#fdf3ec;padding:10px 14px;border-bottom:1px solid var(--hair)}
+.wrap.cm.ads .sw-down em{display:block;font-style:normal;font-size:10px;letter-spacing:1px;font-weight:700;color:#a24a14;text-transform:uppercase;margin-bottom:5px}
+.wrap.cm.ads .sw-cat{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;background:#fff;color:#a24a14;border:1px solid #f1cdb5}
+.wrap.cm.ads .sw-down p{font-size:13px;color:#6b3a17;margin:6px 0 0;line-height:1.45}
+.wrap.cm.ads .sw-arr .rt{display:none}
+.wrap.cm.ads .sw-sum{font-size:15px;font-weight:650;line-height:1.45;color:var(--ink);padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--hair)}
+.wrap.cm.ads .sw-sum small{display:block;font-size:11.5px;font-weight:500;color:var(--soft);margin-top:4px}
+.wrap.cm.ads .sw-rec{margin:0 16px 12px;padding:10px 12px;border-radius:12px;background:#eef6f1;border-left:3px solid #1f7a4d}
+.wrap.cm.ads .sw-rec em{display:block;font-style:normal;font-size:10px;letter-spacing:1px;font-weight:700;color:#1f7a4d;text-transform:uppercase}
+.wrap.cm.ads .sw-rec p{font-size:13px;margin:4px 0 0;line-height:1.5;color:#1d3d2c}
+.wrap.cm.ads .sw-rec span{display:block;font-size:11px;color:#5d7a69;margin-top:3px}
+.wrap.cm.ads .swold ~ .card .mock{max-width:260px}
+@media (min-width:760px){
+  /* Layar lebar: iklan lama dan alasan diturunkannya berdampingan, pengganti di bawahnya. */
+  .wrap.cm.ads .swold{display:grid;grid-template-columns:1fr 1fr}
+  .wrap.cm.ads .swold .sw-old{border-radius:16px 0 0 0}
+  .wrap.cm.ads .swold .sw-down{border-left:1px solid var(--hair)}
+  .wrap.cm.ads .swold .sw-arr{grid-column:1/-1}
+}
+/* ---- bukti tayang ---- */
+.cov.pf{position:relative;background:#fff;color:var(--ink);padding:0 var(--pad) 20px;border-bottom:1px solid var(--hair);overflow:hidden}
+.cov.pf:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,#1f9d55 160%);opacity:.22}
+.cov.pf > *{position:relative}
+.cov.pf .band{background:var(--brand);color:var(--onbrand);margin:0 calc(-1*var(--pad));padding:12px var(--pad)}
+.cov.pf .band.light{background:#fff;border-bottom:3px solid var(--brand)}
+.cov.pf .band.light .ub,.cov.pf .band.dk .ub{filter:brightness(0);opacity:.75}
+.cov.pf .cl{height:34px} .cov.pf .ub{height:19px}
+.cov.pf .tx{margin-top:22px}
+.cov.pf .k{display:inline-block;margin:0;padding:4px 10px;border-radius:99px;font-size:10.5px;letter-spacing:1.6px;font-weight:700;opacity:1;background:#1f9d55;color:#fff}
+.cov.pf h1{font-size:26px;font-weight:700;letter-spacing:-.6px;line-height:1.1;margin-top:8px}
+.cov.pf .per{font-size:12.5px;color:var(--mid);opacity:1;margin-top:5px;line-height:1.5} .cov.pf .per b{color:#1f7a4d}
+.wrap.pf .camp{background:#fff;border-radius:16px;padding:16px;margin:12px 12px 4px}
+.pfg{background:#fff;border-radius:16px;margin:12px;padding:14px 0 6px;overflow:hidden}
+.pfgh{padding:0 16px 10px;border-bottom:1px solid var(--hair)}
+.pfgh b{display:block;font-size:16px;font-weight:700}
+.pfgh span{display:block;font-size:12.5px;color:var(--mid);margin-top:2px}
+.pfchg{margin:12px 16px 0;padding:10px 12px;border-radius:12px;background:#fff7ea;border:1px solid #f0d3a6;font-size:12.5px;color:#7a5414}
+.pfchg b{display:block;font-size:12.5px}
+.pfchg p{margin:4px 0 0;line-height:1.45}
+.pfchg summary,.pfset summary{cursor:pointer;font-weight:600;margin-top:6px;color:var(--c);font-size:12.5px}
+.pfchg ul{margin:6px 0 0 18px;padding:0;line-height:1.5}
+.pfnote{margin:12px 16px 0;padding:10px 12px;border-radius:12px;background:#f5f3f7;font-size:13px;line-height:1.5}
+.pfnote em{display:block;font-style:normal;font-size:10px;letter-spacing:1px;font-weight:700;color:var(--soft);text-transform:uppercase;margin-bottom:2px}
+.pfset{padding:14px 16px 4px;font-size:12.5px;color:var(--mid)}
+.pfset .tl{font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:var(--soft)}
+.pfset .tn{font-size:14.5px;font-weight:700;color:var(--ink);margin-top:2px}
+.pfset .ts{margin-top:2px}
+.pfset details p{margin:4px 0 0;line-height:1.5}
+.pfad{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--hair);margin-top:10px}
+.pfset .pfad:first-of-type{margin-top:12px}
+.pft{width:118px;flex:none;border-radius:12px;overflow:hidden;background:#f0eef1;aspect-ratio:9/16;position:relative}
+.pft img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.pft .pfs{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:100%}
+.pft .pfs img{flex:none;width:100%;scroll-snap-align:start}
+.pft .pfn{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:6px}
+.pft .pfe{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;font-size:11px;color:#9a9598}
+.pfx{flex:1;min-width:0}
+.pfx b{display:block;font-size:14px;font-weight:650;color:var(--ink)}
+.pfx .pff{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:#f0eef1;color:var(--mid);margin-top:4px}
+.pfst{display:block;font-size:12.5px;font-weight:700;margin-top:8px}
+.pfst.on{color:#1f7a4d} .pfst.soon{color:#a86a08}
+.pfx a{display:inline-block;margin-top:6px;font-size:12.5px;font-weight:650;color:var(--c)}
+@media (min-width:640px){ .pft{width:150px} }
 </style>
 </head>
 <body>
@@ -764,6 +829,10 @@ function applyBrand(){
 
 /* ---------- keadaan preview ---------- */
 function isAds(){ return !!(doc && doc.kind === "ads"); }
+function isProof(){ return !!(doc && doc.kind === "proof" && Array.isArray(doc.groups)); }
+function proofItems(){
+  return isProof() ? doc.groups.reduce(function(all, g){ return all.concat(Array.isArray(g.items) ? g.items : []); }, []) : [];
+}
 // Ads swap: sebagian iklan yang berjalan diganti. Yang disetujui klien hanya penggantinya.
 function isSwap(){ return isAds() && doc.mode === "swap" && !!doc.swap && Array.isArray(doc.swap.rows); }
 function swapRows(){ return isSwap() ? doc.swap.rows : []; }
@@ -822,9 +891,9 @@ function stateOf(item){
 // Diambil satu per satu dengan get(), bukan query: rules hanya mengizinkan get untuk
 // dokumen bertanda public. Diambil ulang kalau kontennya direvisi.
 function loadImages(){
-  ((doc && doc.items) || []).concat(swapRows()).forEach(function(it){
+  ((doc && doc.items) || []).concat(swapRows()).concat(proofItems()).forEach(function(it){
     var id = it.imagesDoc; if(!id) return;
-    var key = id + "@" + (it.revisedAt || "");
+    var key = id + "@" + (it.revisedAt || (isProof() ? doc.updatedAt || "" : ""));
     if(imagesAsked[id] === key) return;
     imagesAsked[id] = key;
     // Carousel lebih dari 6 slide disimpan di beberapa dokumen: <id> (slide 1-6, mencatat
@@ -1065,6 +1134,12 @@ function render(force){
   if(!force && typing()){ pendingRender = true; return; }
   pendingRender = false;
   applyBrand();
+  if(isProof()){
+    try{ document.title = "Bukti Tayang " + (doc.client || ""); }catch(e){}
+    var ph = proofHtml();
+    if(cache.__pf !== ph){ root.innerHTML = ph; root.className = "wrap cm ads pf"; cache = { __pf: ph }; }
+    return;
+  }
   try{ document.title = "Preview " + (isAds() ? "Iklan " : "Konten ") + (doc.client || ""); }catch(e){}
 
   var items = doc.items || [];
@@ -1418,6 +1493,7 @@ function coverHtml(){
   var title = '<h1>' + esc(doc.period || doc.client || "") + '</h1>';
   // Tiap jenis halaman punya sampul sendiri (19 Nov), supaya klien langsung tahu
   // sedang membuka preview konten, preview iklan, atau penggantian iklan.
+  if(isProof()) return proofCoverHtml(logos, title, light, dk);
   if(isSwap()) return swapCoverHtml(logos, title, until, light, dk);
   if(isAds()) return adsCoverHtml(logos, title, until, light);
   var photo = coverPhoto();
@@ -1818,7 +1894,19 @@ function swapGroups(){
 }
 function oldThumb(r){
   var img = (images[r.imagesDoc] || [])[0];
-  return img ? '<img class="sw-th" src="' + img + '" alt="">' : '<i class="sw-th"></i>';
+  if(img) return '<img class="sw-th" src="' + img + '" alt="">';
+  // Iklan lama tanpa gambar: tampilkan formatnya supaya kotaknya tidak kosong.
+  var f = /video/i.test(r.format || "") ? "Video" : /katalog/i.test(r.format || "") ? "Katalog" : "Iklan";
+  return '<i class="sw-th ph">' + esc(f) + '</i>';
+}
+// Alasan diturunkan: kategori (chip) + satu kalimat. Data lama hanya punya "reason".
+function whyDown(r, box){
+  var cat = String(r.reasonCat || "").trim(), tx = String(r.reasonText || "").trim();
+  if(!cat && !tx){ cat = ""; tx = String(r.reason || "").trim(); }
+  if(!cat && !tx) return "";
+  if(!box) return '<span class="sw-why">' + esc([cat, tx].filter(Boolean).join(". ")) + '</span>';
+  return '<div class="sw-down"><em>Kenapa diturunkan</em>' + (cat ? '<span class="sw-cat">' + esc(cat) + '</span>' : '') +
+    (tx ? '<p>' + esc(tx) + '</p>' : '') + '</div>';
 }
 function keptHtml(g){
   var h = "";
@@ -1826,7 +1914,7 @@ function keptHtml(g){
     if(!r.keep && hasReplacement(r)) return;
     var m = fmtMetric(r);
     h += '<div class="sw-keep' + (r.keep ? '' : ' stop') + '">' + oldThumb(r) + '<div class="x"><b>' + esc(r.label || "Iklan") + '</b>' +
-      (m ? '<span>' + esc(m) + '</span>' : '') + (!r.keep && r.reason ? '<span class="sw-why">' + esc(r.reason) + '</span>' : '') +
+      (m ? '<span>' + esc(m) + '</span>' : '') + (!r.keep ? whyDown(r, false) : '') +
       '</div><span class="sw-st ' + (r.keep ? 'g' : 'o') + '">' + (r.keep ? "Tetap jalan" : "Dihentikan") + '</span></div>';
   });
   return h;
@@ -1836,8 +1924,8 @@ function oldHtml(it){
   if(!r) return '<div class="sw-arr add">+ Iklan tambahan</div>';
   var m = fmtMetric(r);
   return '<div class="sw-old">' + oldThumb(r) + '<div class="x"><div class="sw-lb">Diganti</div><b>' + esc(r.label || "Iklan lama") + '</b>' +
-    (m ? '<span>' + esc(m) + '</span>' : '') + (r.reason ? '<div class="sw-why">' + esc(r.reason) + '</div>' : '') +
-    '</div></div><div class="sw-arr">↓ Diganti dengan</div>';
+    (m ? '<span>' + esc(m) + '</span>' : '') + '</div></div>' + whyDown(r, true) +
+    '<div class="sw-arr"><span class="dn">↓</span><span class="rt">→</span> Diganti dengan</div>';
 }
 function swapSummary(){
   var rows = swapRows(), kept = rows.filter(function(r){ return r.keep; }).length, n = rows.length - kept;
@@ -1845,7 +1933,9 @@ function swapSummary(){
   rows.forEach(function(r){ if(Number(r.result) > 0){ units[r.unit || "hasil"] = 1; total += Number(r.result);
     if(Number(r.cpr) > 0) cost += Number(r.result) * Number(r.cpr); else allCost = false; } });
   var u = Object.keys(units);
-  var h = '<div class="camp"><div class="ct">Ringkasan</div><div class="cg">' +
+  var sum = String(doc.swap.summary || "").trim(), per = String(doc.swap.periodLabel || "").trim();
+  var h = '<div class="camp">' + (sum ? '<div class="sw-sum">' + esc(sum) + (per ? '<small>Data ' + esc(/^per\b/i.test(per) ? per : "periode " + per) + '</small>' : '') + '</div>' : '') +
+    '<div class="ct">Ringkasan</div><div class="cg">' +
     '<div><span>Tetap jalan</span><b>' + kept + ' iklan</b></div><div><span>Diganti</span><b>' + n + ' iklan</b></div>';
   if(total && u.length === 1){
     h += '<div class="big"><span>Hasil' + (doc.swap.periodLabel ? ' ' + esc(doc.swap.periodLabel) : ' periode lalu') + '</span><b>' +
@@ -1998,6 +2088,11 @@ function adVideo(it, poster){
 
 // Digambar seperti yang akan dilihat audiens: di feed (4:5) atau di Story/Reels (9:16).
 // Headline kepanjangan atau CTA yang tidak nyambung langsung kelihatan di sini.
+function whyRecHtml(it){
+  if(!isSwap() || !String(it.whyRec || "").trim()) return "";
+  return '<div class="sw-rec"><em>Kenapa kami rekomendasikan</em><p>' + esc(it.whyRec) + '</p>' +
+    (it.whyRecBy ? '<span>— ' + esc(it.whyRecBy) + '</span>' : '') + '</div>';
+}
 function adMediaHtml(it){
   var imgs = images[it.imagesDoc] || [], akun = String(doc.client || "").trim();
   var boost = it.adSource === "boost", vid = safeId(it.videoId);
@@ -2005,7 +2100,7 @@ function adMediaHtml(it){
   (doc.adSets || []).forEach(function(x){ if(x.id === sid) s = x; });
   var story = wantsStory(s) && view[sid] === "story";
   var poster = imgs[0] || "";
-  var text = String(it.caption || ""), h = "";
+  var text = String(it.caption || ""), h = whyRecHtml(it);
 
   if(story){
     h += '<div class="mstory">' + (poster && !playing[it.id] ? '<div class="bg" style="background-image:url(' + poster + ')"></div>' : '') +
@@ -2051,13 +2146,115 @@ function adMediaHtml(it){
   return h;
 }
 
+/* ---------- Bukti Tayang ----------
+   Hanya dibaca klien: tidak ada tombol setuju/komentar. Satu link = satu klien + satu
+   periode, boleh beberapa campaign. Tanpa angka hasil (itu tugas Laporan Ads). */
+function todayIso(){ var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+function runText(a0, z0){
+  var a = dparts(a0), z = dparts(z0);
+  if(a && z) return "Tayang " + (a[1] === z[1] && a[0] === z[0] ? a[2] : fmtShort(a0)) + "–" + fmtShort(z0);
+  if(a) return "Tayang mulai " + fmtShort(a0);
+  return "";
+}
+function proofRange(){
+  var a = "", z = "";
+  doc.groups.forEach(function(g){
+    if(g.start && (!a || g.start < a)) a = g.start;
+    if(g.end && (!z || g.end > z)) z = g.end;
+  });
+  return runText(a, z);
+}
+function proofLive(it){ return !!it.start && it.start <= todayIso(); }
+function proofFormat(it){
+  var n = (images[it.imagesDoc] || []).length, f = String(it.format || "");
+  if(/katalog/i.test(f)) return "Katalog";
+  if(/video/i.test(f)) return "Video";
+  return n > 1 ? "Carousel" : "Gambar";
+}
+function budgetText(n, type){
+  n = Number(n) || 0; if(!n) return "";
+  return rupiah(n) + (type === "daily" ? "/hari" : type === "total" ? " total" : "");
+}
+function proofCoverHtml(logos, title, light, dk){
+  var all = proofItems(), live = all.filter(proofLive).length, run = proofRange(), n = doc.groups.length;
+  return '<div class="cov pf"><div class="band' + (light ? " light" : "") + (dk ? " dk" : "") + '">' + logos + '</div>' +
+    '<div class="tx"><div class="k">Bukti tayang</div>' + title +
+    '<div class="per"><b>' + live + ' iklan sedang tayang</b>' + (n > 1 ? ' · ' + n + ' campaign' : '') +
+    (run ? '<br>' + esc(run) : '') + '</div></div></div>';
+}
+function proofTile(it){
+  var imgs = images[it.imagesDoc];
+  if(imgs === undefined) return '<div class="pft"><span class="pfe">Memuat gambar…</span></div>';
+  if(!imgs.length) return '<div class="pft"><span class="pfe">Screenshot menyusul</span></div>';
+  if(imgs.length === 1) return '<div class="pft"><img src="' + imgs[0] + '" alt="" loading="lazy"></div>';
+  return '<div class="pft multi"><div class="pfs">' + imgs.map(function(src, i){
+    return '<img src="' + src + '" alt="Slide ' + (i + 1) + '" loading="lazy">'; }).join("") + '</div>' +
+    '<span class="pfn">' + imgs.length + ' slide · geser ›</span></div>';
+}
+function proofAdHtml(it){
+  var live = proofLive(it), link = it.boost ? safeUrl(it.postLink) : "";
+  var st = live ? '<span class="pfst on">● Tayang sejak ' + esc(fmtShort(it.start)) + '</span>'
+    : it.start ? '<span class="pfst soon">Mulai tayang ' + esc(fmtShort(it.start)) + '</span>'
+    : '<span class="pfst soon">Segera tayang</span>';
+  return '<div class="pfad">' + proofTile(it) + '<div class="pfx"><b>' + esc(it.label || "Iklan") + '</b>' +
+    '<span class="pff">' + esc(proofFormat(it)) + (it.boost ? ' · post dinaikkan' : '') + '</span>' + st +
+    (link ? '<a href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">Lihat postingan ↗</a>' : '') + '</div></div>';
+}
+function proofSetHtml(g, s, its, gi, n){
+  var where = String(s ? s.location || "" : "").trim(), bud = s ? budgetText(s.budget, s.budgetType) : "";
+  var line = [where, bud].filter(Boolean).join(" · "), sen = s ? setSentence(s) : "";
+  var h = '<div class="pfset"><div class="tl">' + (s ? (n > 1 ? "Target " + (gi + 1) : "Target") : "Iklan lainnya") + '</div>';
+  if(s){
+    h += '<div class="tn">' + esc(s.name || "") + '</div>' + (line ? '<div class="ts">' + esc(line) + '</div>' : '') +
+      (sen ? '<details><summary>Detail target</summary><p>' + esc(sen) + '</p></details>' : '');
+  }
+  return h + its.map(proofAdHtml).join("") + '</div>';
+}
+function proofGroupHtml(g){
+  var sets = Array.isArray(g.sets) ? g.sets : [], items = Array.isArray(g.items) ? g.items : [];
+  var run = runText(g.start, g.end), bud = budgetText(g.budget, g.budgetType);
+  var h = '<section class="pfg"><div class="pfgh"><b>' + esc(g.name || "Campaign") + '</b>' +
+    '<span>' + esc([run, bud ? "Budget disepakati " + bud : ""].filter(Boolean).join(" · ")) + '</span></div>';
+  var ch = Array.isArray(g.changes) ? g.changes : [];
+  if(ch.length){
+    h += '<div class="pfchg"><b>Disesuaikan setelah persetujuan</b>' + (g.reason ? '<p>' + esc(g.reason) + '</p>' : '') +
+      '<details><summary>Lihat yang diubah</summary><ul>' + ch.map(function(c){ return '<li>' + esc(c) + '</li>'; }).join("") + '</ul></details></div>';
+  }
+  if(String(g.note || "").trim()) h += '<div class="pfnote"><em>Catatan dari tim</em>' + esc(g.note) + '</div>';
+  var listed = [], shown = sets.filter(function(s){ return items.some(function(it){ return it.adSetId === s.id; }); });
+  shown.forEach(function(s, i){
+    var its = items.filter(function(it){ return it.adSetId === s.id; });
+    its.forEach(function(it){ listed.push(it.id); });
+    h += proofSetHtml(g, s, its, i, shown.length);
+  });
+  var rest = items.filter(function(it){ return listed.indexOf(it.id) < 0; });
+  if(rest.length) h += proofSetHtml(g, shown.length ? null : (sets.length === 1 ? sets[0] : null), rest, 0, 1);
+  return h + '</section>';
+}
+function proofHtml(){
+  var all = proofItems(), live = all.filter(proofLive).length;
+  var h = '<div id="p_head">' + coverHtml();
+  if(isArchived()) h += '<div class="banner warn">Halaman ini sudah ditutup oleh tim UBAH. Hubungi tim UBAH kalau butuh link terbaru.</div>';
+  else if(isExpired()) h += '<div class="banner warn">Masa berlaku halaman ini sudah habis. Isinya masih bisa dibaca.</div>';
+  h += '</div><div class="camp"><div class="ct">Ringkasan</div><div class="cg">' +
+    '<div><span>Sedang tayang</span><b>' + live + ' iklan</b></div>' +
+    '<div><span>Segera tayang</span><b>' + (all.length - live) + ' iklan</b></div></div>' +
+    '<div class="cnote">Screenshot diambil dari tampilan iklan di HP, sama seperti yang dilihat audiens. ' +
+    'Hasil iklan (jangkauan, chat, pembelian) dikirim terpisah di Laporan Ads.</div></div>';
+  doc.groups.forEach(function(g){ h += proofGroupHtml(g); });
+  h += '<div class="end"><div class="fine">Halaman ini dibuat UBAH Digital untuk ' + esc(doc.client || "") +
+    (doc.expiresAtMs && isOpen() ? ' dan berlaku sampai ' + esc(fmtDate(new Date(doc.expiresAtMs).toISOString())) : '') +
+    '. Ada pertanyaan soal iklan ini? Balas langsung ke PIC UBAH Anda.</div></div>';
+  return h;
+}
+
 function endHtml(items){
   var a = 0, n = 0, s = 0, w = 0;
   items.forEach(function(it){
     var st = stateOf(it);
     if(st === "approved") a++; else if(st === "new") n++; else if(st === "sent") s++; else w++;
   });
-  var h = '<div class="end"><h2>Ringkasan</h2><div class="sum"><div class="a"><b>' + a + '</b><span>disetujui</span></div>';
+  var h = '<div class="end"><h2>' + (isAds() ? "Status persetujuan Anda" : "Ringkasan") + '</h2><div class="sum"><div class="a"><b>' + a + '</b><span>disetujui</span></div>';
   if(n) h += '<div class="n"><b>' + n + '</b><span>versi baru, menunggu Anda</span></div>';
   if(s) h += '<div><b>' + s + '</b><span>sedang direvisi tim</span></div>';
   h += '<div><b>' + w + '</b><span>belum ditanggapi</span></div></div>';
@@ -2160,7 +2357,7 @@ function onFocusOut(){
     doc = snap.data();
     render();
     loadImages();
-    if(first){
+    if(first && !isProof()){
       first = false;
       db.collection(PREVIEW_COLLECTION).doc(token).collection("responses")
         .onSnapshot(function(rs){
