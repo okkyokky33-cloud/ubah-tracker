@@ -640,6 +640,7 @@ a{color:inherit}
 .wrap.cm.ads .sw-cat{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;background:#fff;color:#a24a14;border:1px solid #f1cdb5}
 .wrap.cm.ads .sw-down p{font-size:13px;color:#6b3a17;margin:6px 0 0;line-height:1.45}
 .wrap.cm.ads .sw-arr .rt{display:none}
+.wrap.cm.ads .sw-keep .sw-bud{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
 .wrap.cm.ads .sw-sum{font-size:15px;font-weight:650;line-height:1.45;color:var(--ink);padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--hair)}
 .wrap.cm.ads .sw-sum small{display:block;font-size:11.5px;font-weight:500;color:var(--soft);margin-top:4px}
 .wrap.cm.ads .sw-rec{margin:0 16px 12px;padding:10px 12px;border-radius:12px;background:#eef6f1;border-left:3px solid #1f7a4d}
@@ -1915,17 +1916,20 @@ function keptHtml(g){
     var m = fmtMetric(r);
     h += '<div class="sw-keep' + (r.keep ? '' : ' stop') + '">' + oldThumb(r) + '<div class="x"><b>' + esc(r.label || "Iklan") + '</b>' +
       (m ? '<span>' + esc(m) + '</span>' : '') + (!r.keep ? whyDown(r, false) : '') +
+      (!r.keep ? '<span class="sw-bud">Budget-nya dialihkan ke iklan yang tetap jalan.</span>' : '') +
       '</div><span class="sw-st ' + (r.keep ? 'g' : 'o') + '">' + (r.keep ? "Tetap jalan" : "Dihentikan") + '</span></div>';
   });
   return h;
 }
+var PLAN_TXT = { boost: "Diganti dengan postingan Instagram", "new": "Diganti dengan iklan baru",
+  version: "Diganti dengan versi baru", client: "Diganti dengan materi dari Anda" };
 function oldHtml(it){
   var r = it.replaces ? rowById(it.replaces) : null;
   if(!r) return '<div class="sw-arr add">+ Iklan tambahan</div>';
   var m = fmtMetric(r);
   return '<div class="sw-old">' + oldThumb(r) + '<div class="x"><div class="sw-lb">Diganti</div><b>' + esc(r.label || "Iklan lama") + '</b>' +
     (m ? '<span>' + esc(m) + '</span>' : '') + '</div></div>' + whyDown(r, true) +
-    '<div class="sw-arr"><span class="dn">↓</span><span class="rt">→</span> Diganti dengan</div>';
+    '<div class="sw-arr"><span class="dn">↓</span><span class="rt">→</span> ' + esc(PLAN_TXT[r.plan] || "Diganti dengan") + '</div>';
 }
 function swapSummary(){
   var rows = swapRows(), kept = rows.filter(function(r){ return r.keep; }).length, n = rows.length - kept;
@@ -2164,7 +2168,9 @@ function proofRange(){
   });
   return runText(a, z);
 }
-function proofLive(it){ return !!it.start && it.start <= todayIso(); }
+// Iklan yang masuk link Bukti Tayang dianggap sudah tayang (keputusan Okky 20 Nov).
+// Hanya tanggal mulai yang masih di depan yang ditulis "Mulai tayang …".
+function proofLive(it){ return !it.start || it.start <= todayIso(); }
 function proofFormat(it){
   var n = (images[it.imagesDoc] || []).length, f = String(it.format || "");
   if(/katalog/i.test(f)) return "Katalog";
@@ -2193,9 +2199,9 @@ function proofTile(it){
 }
 function proofAdHtml(it){
   var live = proofLive(it), link = it.boost ? safeUrl(it.postLink) : "";
-  var st = live ? '<span class="pfst on">● Tayang sejak ' + esc(fmtShort(it.start)) + '</span>'
-    : it.start ? '<span class="pfst soon">Mulai tayang ' + esc(fmtShort(it.start)) + '</span>'
-    : '<span class="pfst soon">Segera tayang</span>';
+  var st = !live ? '<span class="pfst soon">Mulai tayang ' + esc(fmtShort(it.start)) + '</span>'
+    : it.start ? '<span class="pfst on">● Tayang sejak ' + esc(fmtShort(it.start)) + '</span>'
+    : '<span class="pfst on">● Sedang tayang</span>';
   return '<div class="pfad">' + proofTile(it) + '<div class="pfx"><b>' + esc(it.label || "Iklan") + '</b>' +
     '<span class="pff">' + esc(proofFormat(it)) + (it.boost ? ' · post dinaikkan' : '') + '</span>' + st +
     (link ? '<a href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">Lihat postingan ↗</a>' : '') + '</div></div>';
@@ -2238,7 +2244,7 @@ function proofHtml(){
   else if(isExpired()) h += '<div class="banner warn">Masa berlaku halaman ini sudah habis. Isinya masih bisa dibaca.</div>';
   h += '</div><div class="camp"><div class="ct">Ringkasan</div><div class="cg">' +
     '<div><span>Sedang tayang</span><b>' + live + ' iklan</b></div>' +
-    '<div><span>Segera tayang</span><b>' + (all.length - live) + ' iklan</b></div></div>' +
+    '<div><span>Campaign</span><b>' + doc.groups.length + '</b></div></div>' +
     '<div class="cnote">Screenshot diambil dari tampilan iklan di HP, sama seperti yang dilihat audiens. ' +
     'Hasil iklan (jangkauan, chat, pembelian) dikirim terpisah di Laporan Ads.</div></div>';
   doc.groups.forEach(function(g){ h += proofGroupHtml(g); });
