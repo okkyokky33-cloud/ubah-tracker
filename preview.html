@@ -695,6 +695,12 @@ a{color:inherit}
 .pfx{flex:1;min-width:0}
 .pfx b{display:block;font-size:14px;font-weight:650;color:var(--ink)}
 .pfx .pff{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:#f0eef1;color:var(--mid);margin-top:4px}
+.pftg{background:#f6f9f7;border:1px solid #dcebe1;border-radius:12px;padding:10px 12px;font-size:12.5px;margin-bottom:4px}
+.pftg .tl{font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:#1f7a4d;margin-bottom:4px}
+.pftg .tl b{text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink)}
+.pftg .tr{display:flex;gap:10px;padding:3px 0;border-top:1px solid #e6f0ea}.pftg .tr:first-of-type{border-top:0}
+.pftg .tr span{width:104px;flex:none;color:var(--mid)}.pftg .tr b{font-weight:600;color:var(--ink)}
+.pfto{display:block;font-size:11.5px;color:#1f7a4d;font-weight:600;margin-top:3px}
 .pfst{display:block;font-size:12.5px;font-weight:700;margin-top:8px}
 .pfst.on{color:#1f7a4d} .pfst.soon{color:#a86a08}
 .pfx a{display:inline-block;margin-top:6px;font-size:12.5px;font-weight:650;color:var(--c)}
@@ -2334,8 +2340,20 @@ function proofSetHtml(g, s, its, gi, n){
   }
   return h + its.map(proofAdHtml).join("") + '</div>';
 }
+// Detail target & budget selalu tampil per campaign (tidak bergantung iklan sudah
+// dipasangkan ke ad set atau belum), supaya klien melihat iklan ini tayang ke siapa,
+// di mana, lewat placement apa, dan dengan budget berapa (permintaan Okky 23 Nov).
+function proofTargetHtml(g, s, i, n){
+  var pl = (s.placements || []).map(function(x){ return String(x); }).filter(Boolean);
+  var bud = budgetText(s.budget, s.budgetType);
+  var rows = [["Lokasi", String(s.location || "").trim()], ["Minat / audiens", String(s.interest || "").trim()],
+    ["Placement", pl.join(", ")], ["Budget", bud]].filter(function(r){ return r[1]; });
+  return '<div class="pftg"><div class="tl">' + (n > 1 ? "Target " + (i + 1) : "Target") + (s.name ? ' · <b>' + esc(s.name) + '</b>' : '') + '</div>' +
+    rows.map(function(r){ return '<div class="tr"><span>' + r[0] + '</span><b>' + esc(r[1]) + '</b></div>'; }).join("") + '</div>';
+}
 function proofGroupHtml(g){
-  var sets = Array.isArray(g.sets) ? g.sets : [], items = Array.isArray(g.items) ? g.items : [];
+  var sets = (Array.isArray(g.sets) ? g.sets : []).filter(function(x){ return x && (x.name || x.location || x.interest || (x.placements || []).length || x.budget); });
+  var items = Array.isArray(g.items) ? g.items : [];
   var run = runText(g.start, g.end), bud = budgetText(g.budget, g.budgetType);
   var h = '<section class="pfg"><div class="pfgh"><b>' + esc(g.name || "Campaign") + '</b>' +
     '<span>' + esc([run, bud ? "Budget disepakati " + bud : ""].filter(Boolean).join(" · ")) + '</span></div>';
@@ -2345,14 +2363,15 @@ function proofGroupHtml(g){
       '<details><summary>Lihat yang diubah</summary><ul>' + ch.map(function(c){ return '<li>' + esc(c) + '</li>'; }).join("") + '</ul></details></div>';
   }
   if(String(g.note || "").trim()) h += '<div class="pfnote"><em>Catatan dari tim</em>' + esc(g.note) + '</div>';
-  var listed = [], shown = sets.filter(function(s){ return items.some(function(it){ return it.adSetId === s.id; }); });
-  shown.forEach(function(s, i){
-    var its = items.filter(function(it){ return it.adSetId === s.id; });
+  // Per target: kotak detail (hanya kolom yang diisi), lalu iklan-iklan di target itu.
+  var listed = [];
+  sets.forEach(function(x, i){
+    var its = items.filter(function(it){ return it.adSetId && it.adSetId === x.id; });
     its.forEach(function(it){ listed.push(it.id); });
-    h += proofSetHtml(g, s, its, i, shown.length);
+    h += '<div class="pfset">' + proofTargetHtml(g, x, i, sets.length) + its.map(proofAdHtml).join("") + '</div>';
   });
   var rest = items.filter(function(it){ return listed.indexOf(it.id) < 0; });
-  if(rest.length) h += proofSetHtml(g, shown.length ? null : (sets.length === 1 ? sets[0] : null), rest, 0, 1);
+  if(rest.length) h += '<div class="pfset"><div class="tl">' + (sets.length ? "Iklan lainnya" : "Iklan yang tayang") + '</div>' + rest.map(proofAdHtml).join("") + '</div>';
   return h + '</section>';
 }
 function proofHtml(){
