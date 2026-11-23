@@ -578,6 +578,27 @@ a{color:inherit}
 }
 @media print{.cm .pbar,.acts2,.conf,.me2,.ofile,.more2{display:none !important}.cap2.clip{display:block}.ck.isdone .cin{display:block}.ck .cdone{display:none !important}}
 
+/* ---------- cadangan PDF ---------- */
+.pdfbar{display:flex;justify-content:flex-end;padding:8px var(--pad) 0}
+.pdfb{font-size:12.5px;font-weight:650;color:var(--c);border:1px solid var(--hair);border-radius:99px;padding:6px 13px;background:#fff}
+.pstamp,.pronly{display:none}
+@media print{
+  @page{size:A4 portrait;margin:12mm}
+  .pdfbar,.jump,.pbar,.me2,.notice,.acts2,.conf,.say,.chips,.drow,.cdone,.state button,.ofile,.sug,.sugg,textarea{display:none !important}
+  .pstamp{display:block;font-size:10.5px;color:#666;padding:6px var(--pad)}
+  .pronly{display:block}.pst2{padding:8px var(--pad) 12px;font-size:12.5px;color:#8a5a00;font-weight:600}
+  .ck,.ck.isdone .cin{display:block !important}
+  .aset.closed .gb{display:block !important}
+  .pst{display:grid !important;grid-template-columns:repeat(3,1fr);overflow:visible !important;gap:6px}
+  .ps,.ck .cmed .ps{flex:none !important;max-width:none !important;width:auto !important;break-inside:avoid}
+  .swipe{display:grid !important;grid-template-columns:repeat(3,1fr);overflow:visible !important}
+  .swipe .sl{flex:none !important}
+  img{break-inside:avoid}
+  .pone,.ck .cmed .pone{max-width:300px}.pone img{max-height:110mm;object-fit:contain}
+  .cov,.hero,.pfcov,.adcov,.swcov,[class*="cov"]{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .ps .c{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.spin{animation:none}}
 
 /* ---- iklan (18 Nov): satu kartu per iklan, dikelompokkan per target ---- */
@@ -1009,12 +1030,27 @@ function stateOf(item){
 /* ---------- gambar ---------- */
 // Diambil satu per satu dengan get(), bukan query: rules hanya mengizinkan get untuk
 // dokumen bertanda public. Diambil ulang kalau kontennya direvisi.
+/* ---------- cadangan PDF ---------- */
+// Tombol "Unduh PDF" di halaman klien, dan dari tracker lewat &pdf=1 (dialog cetak terbuka sendiri).
+var imgBusy = 0, respReady = false, pdfAsked = false;
+function pdfBtn(){ return '<div class="pdfbar"><button class="pdfb" data-a="pdf">⬇ Unduh PDF</button></div>' +
+  '<div class="pstamp">Salinan PDF ' + esc(doc.client || "") + ' · dicetak ' + esc(fmtDate(new Date().toISOString())) + '</div>'; }
+function printNow(tries){
+  tries = tries || 0;
+  var imgs = Array.prototype.slice.call(document.images);
+  imgs.forEach(function(i){ if(i.loading === "lazy") i.loading = "eager"; });
+  var ready = !imgBusy && (respReady || isProof() || isAdsRpt()) && imgs.every(function(i){ return i.complete; });
+  if(!ready && tries < 50){ setTimeout(function(){ printNow(tries + 1); }, 400); return; }
+  Array.prototype.forEach.call(document.querySelectorAll("details"), function(d){ d.open = true; });
+  document.body.classList.add("printing");
+  setTimeout(function(){ window.print(); document.body.classList.remove("printing"); }, 300);
+}
 function loadImages(){
   ((doc && doc.items) || []).concat(swapRows()).concat(proofItems()).concat(rptItems()).forEach(function(it){
     var id = it.imagesDoc; if(!id) return;
     var key = id + "@" + (it.revisedAt || (isProof() || isAdsRpt() ? doc.updatedAt || doc.sentAt || "" : ""));
     if(imagesAsked[id] === key) return;
-    imagesAsked[id] = key;
+    imagesAsked[id] = key; imgBusy++;
     // Carousel lebih dari 6 slide disimpan di beberapa dokumen: <id> (slide 1-6, mencatat
     // jumlah halaman di "pages"), <id>__p2 (7-12), dan seterusnya. Slide 1-6 ditampilkan
     // dulu, sisanya menyusul begitu terunduh.
@@ -1040,7 +1076,7 @@ function loadImages(){
       });
     }).catch(function(){
       images[id] = [];            // belum ditandai publik — kontennya tetap tampil tanpa gambar
-    }).then(function(){ render(); });
+    }).then(function(){ imgBusy = Math.max(0, imgBusy - 1); render(); });
   });
 }
 
@@ -1133,6 +1169,7 @@ function sendApproveMany(setId, list){
 
 /* ---------- aksi ---------- */
 function act(a, id, n, el){
+  if(a === "pdf"){ printNow(0); return; }
   var it = id ? itemById(id) : null;
   if(a === "goto"){
     // Iklan di bab yang terlipat dibuka dulu, baru digulir ke sana.
@@ -1669,7 +1706,7 @@ function headC(items){
     if(s === "approved") approved++;
     if(s === "new") fresh.push(it);
   });
-  var h = coverHtml();
+  var h = coverHtml() + pdfBtn();
   if(isArchived()){
     h += doc.closedReason === "done"
       ? '<div class="banner done">Semua ' + (isAds() ? "iklan" : "konten") + ' di halaman ini sudah disetujui dan diproses. ' +
@@ -1828,6 +1865,7 @@ function talkC(it){
   var id = esc(it.id), ap = approvalOf(it), open = openComments(it);
   var imgs = images[it.imagesDoc] || [];
   var h = commentsHtml(it, !!ap);
+  if(!ap) h += '<div class="pronly pst2">Status: belum disetujui' + (openComments(it).length ? ' · ada komentar' : '') + '</div>';
   if(ap){
     h += '<div class="state">✓ <b>Disetujui</b> ' + esc(ap.picName || "") + ', ' + esc(fmtWhen(ap.at)) + '. ';
     if(it.processedAt) h += 'Sudah diproses tim untuk ' + (isAds() ? "ditayangkan." : "dijadwalkan.");
@@ -2376,7 +2414,7 @@ function proofGroupHtml(g){
 }
 function proofHtml(){
   var all = proofItems(), live = all.filter(proofLive).length;
-  var h = '<div id="p_head">' + coverHtml();
+  var h = '<div id="p_head">' + coverHtml() + pdfBtn();
   if(isArchived()) h += '<div class="banner warn">Halaman ini sudah ditutup oleh tim UBAH. Hubungi tim UBAH kalau butuh link terbaru.</div>';
   else if(isExpired()) h += '<div class="banner warn">Masa berlaku halaman ini sudah habis. Isinya masih bisa dibaca.</div>';
   h += '</div><div class="camp"><div class="ct">Ringkasan</div><div class="cg">' +
@@ -2445,7 +2483,7 @@ var ADS_OBJ_LBL = { leads: "Leads WhatsApp", sales: "Penjualan website", traffic
 function rpTiles(){
   var r = doc.rpt, T = r.totals, u = rpUnit(), prev = doc.cmp && doc.cmp.prev;
   var t = [];
-  t.push(['Budget terpakai', 'Rp' + rpShort(T.spend), doc.ppn ? 'Rp' + rpShort(T.spend + T.ppn) + ' termasuk PPN 11%' : '']);
+  t.push(['Budget terpakai', 'Rp' + rpShort(T.spend), doc.ppn ? 'Rp' + rpShort(T.spend + T.ppn) + ' termasuk PPN Meta 11%' : '']);
   if(r.obj === "sales"){
     t.push(['ROAS iklan', (T.roas || 0).toFixed(1).replace(".", ",") + 'x', 'Rp' + rpShort(T.value) + ' penjualan dari iklan']);
     t.push(['Pembelian dari iklan', rpN(T.purch), rpDelta(T.res, prev && prev.res)]);
@@ -2590,19 +2628,21 @@ function rpHealth(){
 }
 function rpLines(arr){ return arr.map(function(x){ return String(x || "").trim(); }).filter(Boolean).map(function(x){ return '<li>' + esc(x) + '</li>'; }).join(""); }
 function rpLearn(){
-  var I = doc.insight || {}, o = I.ops || {}, c = I.cs || {}, a = I.ad || {};
+  var I = rpTxt().insight || {}, o = I.ops || {}, c = I.cs || {}, a = I.ad || {};
   var good = rpLines([o.worked, c.worked, a.worked]), less = rpLines([o.less]), next = rpLines([o.plan, c.plan, a.plan]);
   if(!good && !less && !next) return "";
   var col = function(t, list, cl){ return list ? '<div class="rp-lc ' + cl + '"><b>' + t + '</b><ul>' + list + '</ul></div>' : ''; };
   return rpSec("Pembelajaran", "Yang berhasil & langkah berikutnya", '<div class="rp-lcs">' + col("✓ Yang berhasil", good, "g") + col("! Yang perlu diperbaiki", less, "w") + col("→ Berikutnya", next, "n") + '</div>');
 }
 function rpActions(){
-  var A = doc.actions || {}, ks = [["identify","Identify"],["continue","Continue"],["test","Test"],["optimize","Optimize"]];
+  var A = rpTxt().actions || {}, ks = [["identify","Identify"],["continue","Continue"],["test","Test"],["optimize","Optimize"]];
   if(!ks.some(function(k){ return String(A[k[0]] || "").trim(); })) return "";
   return rpSec("Rencana periode berikutnya", "Action plan", '<div class="rp-acts">' + ks.map(function(k, i){
     return '<div class="rp-act' + (i === 0 || i === 3 ? " dk" : "") + '"><div class="h">' + (i + 1) + '. ' + k[1].toUpperCase() + '</div><div>' + esc(A[k[0]] || "–") + '</div></div>';
   }).join("") + '</div>');
 }
+// Link terkirim: klien melihat salinan saat "Buat/Perbarui link klien", bukan isian yang sedang diedit tim.
+function rpTxt(){ return (doc.status === "sent" && doc.sent) ? doc.sent : doc; }
 function rpAppendix(){
   var ap = doc.rpt.appendix || []; if(!ap.length) return "";
   var col = rpMark();
@@ -2624,7 +2664,7 @@ function rpEnd(){
   var tbl = rest.length ? '<table class="rp-tbl"><thead><tr><th>Iklan lainnya</th><th>Campaign</th><th>Spend</th><th>Hasil</th><th>Biaya/hasil</th></tr></thead><tbody>' + rest.map(function(a){
     return '<tr><td>' + esc(a.name) + '</td><td>' + esc(a.camp) + '</td><td>' + rpRp(a.spend) + '</td><td>' + rpN(a.res) + '</td><td>' + (a.cost ? rpRp(a.cost) : "–") + '</td></tr>'; }).join("") + '</tbody></table>' : '';
   var bud = '<div class="rp-bud"><div class="rp-st l"><span>Spend di Meta</span><b>' + rpRp(T.spend) + '</b></div>' +
-    (doc.ppn ? '<div class="rp-st l"><span>PPN 11%</span><b>' + rpRp(T.ppn) + '</b></div><div class="rp-st"><span>Total top up (termasuk PPN 11%)</span><b>' + rpRp(T.spend + T.ppn) + '</b></div>' : '') + '</div>';
+    (doc.ppn ? '<div class="rp-st l"><span>PPN Meta 11%</span><b>' + rpRp(T.ppn) + '</b></div><div class="rp-st"><span>Total top up (termasuk PPN Meta 11%)</span><b>' + rpRp(T.spend + T.ppn) + '</b></div>' : '') + '</div>';
   return (tbl ? rpSec("Lampiran", "Iklan lainnya", tbl, "rp-ap") : "") +
     rpSec("Budget", "Pemakaian budget iklan", bud + '<div class="rp-note">Angka dari Meta Ads Manager periode ' + esc(doc.period || "") + '.</div><div class="rp-thx"><b>Terima kasih</b><span>Tim UBAH Digital</span></div>');
 }
@@ -2635,7 +2675,7 @@ function rptHtml(){
   h += rpCover();
   h += rpSec("Ringkasan", r.obj === "sales" ? "ROAS iklan " + (r.totals.roas || 0).toFixed(1).replace(".", ",") + "x dari " + rpN(r.totals.purch) + " pembelian"
       : rpN(r.totals.res) + " " + rpUnit() + " dengan biaya " + rpRp(r.avgCost) + " per " + rpUnit(),
-    (doc.summary ? '<p class="rp-lead">' + esc(doc.summary) + '</p>' : '') + rpTiles() + rpTrend());
+    (rpTxt().summary ? '<p class="rp-lead">' + esc(rpTxt().summary) + '</p>' : '') + rpTiles() + rpTrend());
   h += rpCampBars() + rpBvh() + rpFunnel() + rpMap() + rpWinners() + rpBottomOptim() + rpHealth() + rpLearn() + rpActions() + rpAppendix() + rpEnd();
   return h;
 }
@@ -2749,11 +2789,13 @@ function onFocusOut(){
     doc = snap.data();
     render();
     loadImages();
+    if(qs("pdf") === "1" && !pdfAsked){ pdfAsked = true; setTimeout(function(){ printNow(0); }, 800); }
     if(first && !isProof() && !isAdsRpt()){
       first = false;
       db.collection(PREVIEW_COLLECTION).doc(token).collection("responses")
         .onSnapshot(function(rs){
           responses = rs.docs.map(function(d){ var o = d.data(); o.id = d.id; return o; });
+          respReady = true;
           render();
         }, function(){ /* tanggapan gagal dimuat — halaman tetap bisa dibaca */ });
     }

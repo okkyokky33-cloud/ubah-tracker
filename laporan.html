@@ -595,7 +595,8 @@ function loadThumbs(){
   if(key === thumbsFor) return;
   thumbsFor = key;
   var next = {}, left = n;
-  if(!n){ thumbs = {}; return; }
+  thumbsDone = false;
+  if(!n){ thumbs = {}; thumbsDone = true; return; }
   for(var i = 0; i < n; i++){
     db.collection(REPORT_COLLECTION).doc(token).collection("thumbs").doc("c" + i).get()
       .then(function(s){
@@ -603,10 +604,20 @@ function loadThumbs(){
         for(var k in m) next[k] = m[k];
       })
       .catch(function(){ /* gambar gagal dimuat — kotaknya jatuh ke judul */ })
-      .then(function(){ if(--left === 0){ thumbs = next; render(); } });
+      .then(function(){ if(--left === 0){ thumbs = next; thumbsDone = true; render(); } });
   }
 }
 
+// Dari tracker (&pdf=1): tunggu gambar kotak, lalu buka dialog cetak sekali.
+var pdfAsked = false, thumbsDone = false;
+function printWhenReady(tries){
+  var n = Number(doc && doc.thumbChunks) || 0;
+  var imgs = Array.prototype.slice.call(document.images);
+  imgs.forEach(function(i){ if(i.loading === "lazy") i.loading = "eager"; });
+  var ready = (!n || thumbsDone) && imgs.every(function(i){ return i.complete; });
+  if(ready || tries > 50){ setTimeout(function(){ window.print(); }, 300); return; }
+  setTimeout(function(){ printWhenReady(tries + 1); }, 400);
+}
 function fatal(judul, pesan){
   root.innerHTML = '<div class="screen"><h2>' + esc(judul) + '</h2><p>' + esc(pesan) + '</p></div>';
 }
@@ -634,6 +645,7 @@ function fatal(judul, pesan){
     doc = snap.data();
     render();
     loadThumbs();
+    if(qs("pdf") === "1" && !pdfAsked){ pdfAsked = true; setTimeout(function(){ printWhenReady(0); }, 600); }
   }, function(){
     fatal("Tidak bisa membuka laporan", "Periksa koneksi lalu buka ulang. Kalau tetap gagal, hubungi tim UBAH.");
   });
