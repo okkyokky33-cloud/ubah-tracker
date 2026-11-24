@@ -602,8 +602,10 @@ a{color:inherit}
   .pfad,.pftg{break-inside:avoid;page-break-inside:avoid}.pftg{break-after:avoid;page-break-after:avoid}
   .pft.multi{width:auto;aspect-ratio:auto;background:none;overflow:visible}
   .pft.multi .pfs{display:flex;flex-wrap:wrap;gap:6px;overflow:visible;height:auto}
-  .pft.multi .pfs img{width:100px;height:auto;aspect-ratio:9/16;border-radius:10px}
-  .pft .pfn{display:none}
+  .pft.multi{width:auto !important}
+  .pft.multi .pfs img{width:150px;height:auto;border-radius:10px}
+  .pft .pfn,.pft .pfz,.zm{display:none !important}
+  .pft{width:190px !important;max-width:none !important;cursor:auto}
   .pfad:has(.pft.multi){flex-direction:column}
   .ck .cin{grid-template-columns:240px 1fr !important;padding:14px !important}.ck .cmed .mock,.ck .cmed .adm{max-width:240px}
   .pone,.ck .cmed .pone{max-width:300px}.pone img{max-height:110mm;object-fit:contain}
@@ -728,6 +730,22 @@ a{color:inherit}
 .pfx{flex:1;min-width:0}
 .pfx b{display:block;font-size:14px;font-weight:650;color:var(--ink)}
 .pfx .pff{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:#f0eef1;color:var(--mid);margin-top:4px}
+/* Bukti Tayang: screenshot ±1/2 lebar HP, utuh (opsi C, 24 Nov); ketuk = layar penuh */
+.pfad{gap:14px}
+.pft{width:54%;max-width:280px;aspect-ratio:auto;border-radius:14px;cursor:zoom-in}
+.pft:has(.pfe){aspect-ratio:auto;height:96px;cursor:default}
+.pft img{height:auto}
+.pft .pfs{height:auto;align-items:flex-start}
+.pft .pfn{left:auto;right:8px;top:8px;bottom:auto;font-size:10.5px;padding:3px 8px;border-radius:99px}
+.pft .pfz{position:absolute;right:8px;bottom:8px;width:28px;height:28px;border-radius:99px;background:rgba(0,0,0,.55);color:#fff;font-size:15px;line-height:28px;text-align:center;pointer-events:none}
+@media (min-width:640px){ .pfad{gap:22px} .pft{width:300px;max-width:none} }
+.zm{position:fixed;inset:0;z-index:999;background:#0d0b0f;display:flex;flex-direction:column}
+.zm .zt{display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;color:#fff;font-size:13px;font-weight:600}
+.zm .zx{color:#fff;font-size:26px;line-height:1;width:40px;height:40px;background:rgba(255,255,255,.12);border-radius:99px}
+.zm .zs{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.zm .zs::-webkit-scrollbar{display:none}
+.zm .zs div{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:6px 10px calc(16px + env(safe-area-inset-bottom))}
+.zm .zs img{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px}
 .pftg{background:#f6f9f7;border:1px solid #dcebe1;border-radius:12px;padding:10px 12px;font-size:12.5px;margin-bottom:4px}
 .pftg .tl{font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:#1f7a4d;margin-bottom:4px}
 .pftg .tl b{text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink)}
@@ -737,7 +755,7 @@ a{color:inherit}
 .pfst{display:block;font-size:12.5px;font-weight:700;margin-top:8px}
 .pfst.on{color:#1f7a4d} .pfst.soon{color:#a86a08}
 .pfx a{display:inline-block;margin-top:6px;font-size:12.5px;font-weight:650;color:var(--c)}
-@media (min-width:640px){ .pft{width:150px} }
+/* lebar laptop: lihat opsi C di atas */
 /* ---- Laporan Ads ---- */
 .wrap.rp{max-width:1180px;padding:12px 12px 40px}
 .rp-draft{background:#fff4dc;color:#7a5414;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;margin-bottom:10px;text-align:center}
@@ -1041,6 +1059,55 @@ function stateOf(item){
 /* ---------- gambar ---------- */
 // Diambil satu per satu dengan get(), bukan query: rules hanya mengizinkan get untuk
 // dokumen bertanda public. Diambil ulang kalau kontennya direvisi.
+/* ---------- alamat di address bar ---------- */
+// Link Bukti Tayang/Ads/Swap/Laporan Ads dibuka lewat halaman pembuka (bukti.html, dst.) lalu
+// pindah ke preview.html. Alamat dikembalikan ke halaman pembuka yang sesuai, supaya kalau tim
+// menyalin link dari browser, kartu WhatsApp-nya tetap benar (kasus Masa, 24 Nov).
+function pageOfDoc(){
+  if(isProof()) return "bukti.html";
+  if(isAdsRpt()) return "laporan-ads.html";
+  if(doc.kind === "ads") return doc.mode === "swap" && doc.swap ? "swap.html" : "ads.html";
+  return "preview.html";
+}
+function fixAddress(){
+  try{
+    var page = pageOfDoc(), path = location.pathname;
+    var search = location.search.replace(/[?&]pdf=1/, "").replace(/^&/, "?");
+    if(path.slice(path.lastIndexOf("/") + 1) === page && search === location.search) return;
+    history.replaceState(null, "", path.slice(0, path.lastIndexOf("/") + 1) + page + search + location.hash);
+  }catch(e){}
+}
+
+/* ---------- perbesar screenshot (Bukti Tayang) ---------- */
+// Lapisan di luar #app supaya tidak hilang saat render ulang.
+function closeZoom(){
+  var z = document.getElementById("zm"); if(z) z.remove();
+  document.documentElement.style.overflow = "";
+  document.removeEventListener("keydown", zoomKey);
+}
+function zoomKey(e){ if(e.key === "Escape") closeZoom(); }
+function openZoom(docId, start){
+  var imgs = images[docId] || []; if(!imgs.length) return;
+  closeZoom();
+  var z = document.createElement("div"); z.id = "zm"; z.className = "zm";
+  z.setAttribute("role", "dialog"); z.setAttribute("aria-label", "Screenshot iklan");
+  z.innerHTML = '<div class="zt"><span class="zc">' + (imgs.length > 1 ? (start + 1) + ' / ' + imgs.length : '') + '</span>' +
+    '<button class="zx" aria-label="Tutup">×</button></div><div class="zs">' +
+    imgs.map(function(src){ return '<div><img src="' + src + '" alt=""></div>'; }).join("") + '</div>';
+  document.body.appendChild(z);
+  document.documentElement.style.overflow = "hidden";
+  var sc = z.querySelector(".zs"), cnt = z.querySelector(".zc");
+  sc.scrollLeft = sc.clientWidth * start;
+  sc.addEventListener("scroll", function(){
+    if(imgs.length > 1) cnt.textContent = (Math.round(sc.scrollLeft / Math.max(1, sc.clientWidth)) + 1) + " / " + imgs.length;
+  });
+  z.addEventListener("click", function(e){
+    e.stopPropagation();
+    if(e.target.closest(".zx") || (e.target.tagName !== "IMG" && !e.target.closest(".zt"))) closeZoom();
+  });
+  document.addEventListener("keydown", zoomKey);
+}
+
 /* ---------- cadangan PDF ---------- */
 // Tombol "Unduh PDF" di halaman klien, dan dari tracker lewat &pdf=1 (dialog cetak terbuka sendiri).
 var imgBusy = 0, respReady = false, pdfAsked = false;
@@ -1181,6 +1248,7 @@ function sendApproveMany(setId, list){
 /* ---------- aksi ---------- */
 function act(a, id, n, el){
   if(a === "pdf"){ printNow(0); return; }
+  if(a === "zoom"){ openZoom(id, Number(n) || 0); return; }
   var it = id ? itemById(id) : null;
   if(a === "goto"){
     // Iklan di bab yang terlipat dibuka dulu, baru digulir ke sana.
@@ -2365,10 +2433,11 @@ function proofTile(it){
   var imgs = images[it.imagesDoc];
   if(imgs === undefined) return '<div class="pft"><span class="pfe">Memuat gambar…</span></div>';
   if(!imgs.length) return '<div class="pft"><span class="pfe">Screenshot menyusul</span></div>';
-  if(imgs.length === 1) return '<div class="pft"><img src="' + imgs[0] + '" alt="" loading="lazy"></div>';
+  var d = esc(it.imagesDoc), z = '<span class="pfz" aria-hidden="true">⤢</span>';
+  if(imgs.length === 1) return '<div class="pft"><img src="' + imgs[0] + '" alt="Perbesar screenshot" loading="lazy" data-a="zoom" data-id="' + d + '" data-n="0">' + z + '</div>';
   return '<div class="pft multi"><div class="pfs">' + imgs.map(function(src, i){
-    return '<img src="' + src + '" alt="Slide ' + (i + 1) + '" loading="lazy">'; }).join("") + '</div>' +
-    '<span class="pfn">' + imgs.length + ' slide · geser ›</span></div>';
+    return '<img src="' + src + '" alt="Slide ' + (i + 1) + ', perbesar" loading="lazy" data-a="zoom" data-id="' + d + '" data-n="' + i + '">'; }).join("") + '</div>' +
+    '<span class="pfn">' + imgs.length + ' slide · geser ›</span>' + z + '</div>';
 }
 function proofAdHtml(it){
   var live = proofLive(it), link = it.boost ? safeUrl(it.postLink) : "";
@@ -2810,6 +2879,7 @@ function onFocusOut(){
     render();
     loadImages();
     if(qs("pdf") === "1" && !pdfAsked){ pdfAsked = true; setTimeout(function(){ printNow(0); }, 800); }
+    fixAddress();
     if(first && !isProof() && !isAdsRpt()){
       first = false;
       db.collection(PREVIEW_COLLECTION).doc(token).collection("responses")
