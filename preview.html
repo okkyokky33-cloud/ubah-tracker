@@ -576,7 +576,7 @@ a{color:inherit}
   .ck .say,.ck .mine,.ck .old{padding-left:0;padding-right:0;margin-left:0;margin-right:0}
   .cm .end{margin:14px 0 24px}
 }
-@media print{.cm .pbar,.acts2,.conf,.me2,.ofile,.more2{display:none !important}.cap2.clip{display:block}.ck.isdone .cin{display:block}.ck .cdone{display:none !important}}
+@media print{.cm .pbar,.acts2,.conf,.me2,.more2{display:none !important}.cap2.clip{display:block}.ck.isdone .cin{display:block}.ck .cdone{display:none !important}}
 
 /* ---------- cadangan PDF ---------- */
 .pdfbar{display:flex;justify-content:flex-end;padding:8px var(--pad) 0}
@@ -584,7 +584,8 @@ a{color:inherit}
 .pstamp,.pronly{display:none}
 @media print{
   @page{size:A4 portrait;margin:12mm}
-  .pdfbar,.jump,.pbar,.me2,.notice,.acts2,.conf,.say,.chips,.drow,.cdone,.state button,.ofile,.sug,.sugg,textarea{display:none !important}
+  .pdfbar,.jump,.pbar,.me2,.notice,.acts2,.conf,.say,.chips,.drow,.cdone,.state button,.sug,.sugg,textarea{display:none !important}
+  .ofile{break-inside:avoid}
   .pstamp{display:block;font-size:10.5px;color:#666;padding:6px var(--pad)}
   .pronly{display:block}.pst2{padding:8px var(--pad) 12px;font-size:12.5px;color:#8a5a00;font-weight:600}
   .ck,.ck.isdone .cin{display:block !important}
@@ -594,6 +595,17 @@ a{color:inherit}
   .swipe{display:grid !important;grid-template-columns:repeat(3,1fr);overflow:visible !important}
   .swipe .sl{flex:none !important}
   img{break-inside:avoid}
+  .ck,.adcard,.mock{break-inside:avoid;page-break-inside:avoid}
+  .noprint,.setlink,.sugl,.sugbox,.vt .pl em{display:none !important}
+  .sw-arr,.ct{break-after:avoid;page-break-after:avoid}
+  .end,.sum,.camp,.cg{break-inside:avoid;page-break-inside:avoid}
+  .pfad,.pftg{break-inside:avoid;page-break-inside:avoid}.pftg{break-after:avoid;page-break-after:avoid}
+  .pft.multi{width:auto;aspect-ratio:auto;background:none;overflow:visible}
+  .pft.multi .pfs{display:flex;flex-wrap:wrap;gap:6px;overflow:visible;height:auto}
+  .pft.multi .pfs img{width:100px;height:auto;aspect-ratio:9/16;border-radius:10px}
+  .pft .pfn{display:none}
+  .pfad:has(.pft.multi){flex-direction:column}
+  .ck .cin{grid-template-columns:240px 1fr !important;padding:14px !important}.ck .cmed .mock,.ck .cmed .adm{max-width:240px}
   .pone,.ck .cmed .pone{max-width:300px}.pone img{max-height:110mm;object-fit:contain}
   .cov,.hero,.pfcov,.adcov,.swcov,[class*="cov"]{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ps .c{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -832,7 +844,6 @@ a{color:inherit}
   .rp-thx{position:static;margin-top:20px}.rp-ft{left:16px;right:16px}.rp-tbl{font-size:11px}
 }
 @media print{
-  @page{size:A4 landscape;margin:0}
   body{background:#fff!important}
   .wrap.rp{max-width:none;padding:0}
   .rp-draft,.rp-pdf,.banner{display:none!important}
@@ -1472,10 +1483,10 @@ function mediaHtml(it){
     if(imgs.length){
       h += '<div class="duo"><div><div class="t cov"><img src="' + imgs[0] + '" alt=""></div><div class="lb">Cover</div></div>' +
            '<div>' + videoTile(it, imgs[1] || imgs[0]) + '<div class="lb">' +
-           (playing[it.id] ? "Video" : "Video, ketuk untuk memutar") + '</div></div></div>';
+           (playing[it.id] ? "Video" : 'Video<span class="noprint">, ketuk untuk memutar</span>') + '</div></div></div>';
     } else {
       h += '<div class="duo solo"><div>' + videoTile(it, "") + '<div class="lb">' +
-           (playing[it.id] ? "Video" : "Ketuk untuk memutar video") + '</div></div></div>';
+           (playing[it.id] ? "Video" : '<span class="noprint">Ketuk untuk memutar </span>Video') + '</div></div></div>';
     }
   } else if(carousel && imgs.length > 3){
     h += '<div class="grid">';
@@ -2668,7 +2679,16 @@ function rpEnd(){
   return (tbl ? rpSec("Lampiran", "Iklan lainnya", tbl, "rp-ap") : "") +
     rpSec("Budget", "Pemakaian budget iklan", bud + '<div class="rp-note">Angka dari Meta Ads Manager periode ' + esc(doc.period || "") + '.</div><div class="rp-thx"><b>Terima kasih</b><span>Tim UBAH Digital</span></div>');
 }
+// Laporan Ads dicetak landscape. @page dipasang hanya untuk halaman ini, supaya
+// preview/bukti/swap tetap portrait (kalau tidak, isi PDF terputar di printer Windows).
+function rpPageStyle(){
+  if(document.getElementById("rpPage")) return;
+  var st = document.createElement("style"); st.id = "rpPage";
+  st.textContent = "@media print{@page{size:A4 landscape;margin:0}}";
+  document.head.appendChild(st);
+}
 function rptHtml(){
+  rpPageStyle();
   var r = doc.rpt, h = "";
   if(doc.status !== "sent") h += '<div class="rp-draft">DRAF · belum dikirim ke klien. Angka dan isi masih bisa berubah.</div>';
   if(isArchived()) h += '<div class="banner warn">Laporan ini sudah ditutup oleh tim UBAH.</div>';
@@ -2696,8 +2716,8 @@ function endHtml(items){
   }
   h += '<div class="fine">Halaman ini dibuat UBAH Digital untuk ' + esc(doc.client || "") +
     (doc.expiresAtMs && isOpen() ? ' dan berlaku sampai ' + esc(fmtDate(new Date(doc.expiresAtMs).toISOString())) : '') +
-    '. Semua tanggapan tercatat dan langsung sampai ke tim.<br><br>' +
-    'Kalau dibuka dari iPhone, matikan mode True Tone supaya warna gambar terlihat sebagaimana aslinya.</div></div>';
+    '. Semua tanggapan tercatat dan langsung sampai ke tim.<span class="noprint"><br><br>' +
+    'Kalau dibuka dari iPhone, matikan mode True Tone supaya warna gambar terlihat sebagaimana aslinya.</span></div></div>';
   return h;
 }
 
