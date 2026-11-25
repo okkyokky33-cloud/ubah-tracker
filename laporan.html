@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' https://www.gstatic.com 'sha256-wWHgwUjQnhi7y+PmlZuPSKVe82EOSXqqZb3f4vlZ1RE='; object-src 'none'; base-uri 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <!-- Kartu link di WhatsApp/Telegram (19 Nov). Gambar sama untuk semua klien: WhatsApp
@@ -570,7 +571,7 @@ function menungguHtml(){
 function footHtml(){
   return '<div class="foot"><span>Disusun dari tracker UBAH Digital' +
     (doc.createdAt ? ', ' + esc(fmtDateLong(doc.createdAt)) : '') + '.</span>' +
-    '<button class="pdf" onclick="window.print()">Simpan PDF</button></div>';
+    '</div>';   // tombol PDF hanya di tracker (keputusan Okky 24 Nov)
 }
 
 function render(){

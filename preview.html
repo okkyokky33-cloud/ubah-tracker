@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' https://www.gstatic.com 'sha256-OfS5800WxnVR2XKWLAjayLzvF96syytNWGWYogi6U/0='; object-src 'none'; base-uri 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <!-- Kartu link di WhatsApp/Telegram (19 Nov). Gambar sama untuk semua klien: WhatsApp
@@ -159,6 +160,23 @@ a{color:inherit}
 .box textarea{border:none;background:transparent;resize:none;outline:none;font-size:16px;line-height:1.45;min-height:44px;width:100%}
 .box textarea::placeholder{color:#a8a2a0;font-size:14.5px}
 .box .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.att{display:flex;gap:8px;flex-wrap:wrap}.att:empty{display:none}
+.att .ap{position:relative}.att .ap img{width:54px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--hair);display:block}
+.att .ap button{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:99px;background:#2a2326;color:#fff;font-size:14px;line-height:22px}
+.att .apb{font-size:12px;color:var(--ink-3);align-self:center}
+.alink{display:flex;gap:6px;align-items:flex-start;background:#fff;border:1px solid var(--hair);border-radius:10px;padding:6px 8px}
+.alink textarea{min-height:22px !important;font-size:14px !important}
+.alink button{font-size:18px;line-height:1;color:var(--ink-3);padding:2px 4px}
+.aerr{font-size:12px;color:#b0172f}
+.abtn{display:flex;gap:7px;flex-wrap:wrap}
+.ab{font-size:12.5px;font-weight:650;color:var(--c);border:1px solid var(--hair);border-radius:99px;padding:6px 11px;background:#fff;cursor:pointer;position:relative;overflow:hidden}
+.ab input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.ab.off{color:var(--ink-3);cursor:default}
+.cpics{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}
+.cpics-w{display:block;font-size:12px;color:var(--ink-3);margin:4px 0}
+.cpics img{width:54px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--hair);cursor:zoom-in}
+.clink{display:block;font-size:12.5px;color:var(--c);word-break:break-all;margin:3px 0}
+.m a{color:var(--c);text-decoration:underline;text-underline-offset:2px;word-break:break-all}
 .box .cnt{font-size:11px;color:var(--soft)}
 .box .btns{display:flex;gap:8px;align-items:center;margin-left:auto}
 .send{font-size:13.5px;font-weight:650;color:#fff;background:#cfc8c6;border-radius:16px;padding:7px 16px}
@@ -596,7 +614,7 @@ a{color:inherit}
   .swipe .sl{flex:none !important}
   img{break-inside:avoid}
   .ck,.adcard,.mock{break-inside:avoid;page-break-inside:avoid}
-  .noprint,.setlink,.sugl,.sugbox,.vt .pl em{display:none !important}
+  .noprint,.setlink,.sugl,.sugbox,.vt .pl em,.abtn,.att,.alink{display:none !important}
   .sw-arr,.ct{break-after:avoid;page-break-after:avoid}
   .end,.sum,.camp,.cg{break-inside:avoid;page-break-inside:avoid}
   .pfad,.pftg{break-inside:avoid;page-break-inside:avoid}.pftg{break-after:avoid;page-break-after:avoid}
@@ -914,6 +932,16 @@ var myName = "", mine = {};       // mine: { responseId: 1 } — tanggapan yang 
 var asking = {};                  // { itemId: 1 } -> tombol Setuju sedang minta penegasan
 var slideOn = {};                 // { itemId: nomor slide yang sedang dikomentari }
 var drafts = {};                  // { itemId: teks }
+// Lampiran tanggapan (24 Nov): maks 3 screenshot + 1 link referensi per tanggapan.
+var MAX_PICS = 3, PIC_MAX_CHARS = 120000;   // ±90 KB; 6 gambar tetap muat di dokumen acuan revisi task (batas 1 MB)
+// Screenshot HARUS gambar base64 murni. Tanpa ini, isian berisi tanda kutip bisa menyisipkan
+// kode ke halaman (review 25 Nov). Rules memeriksa pola yang sama.
+var PIC_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/;
+var picsBy = {};
+var PIC_FB_RE = /^(data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+|https:\/\/[^"'<>\s]+)$/;                  // { responseId: [dataUrl] } dari subkoleksi "pics" (dokumen terpisah)
+var pend = {};                    // { itemId: [dataUrl] } screenshot yang belum dikirim
+var plink = {};                   // { itemId: teks link } (ada = kolom link dibuka)
+var picBusy = {};
 var editing = null;               // { id, itemId, text } komentar yang sedang diubah
 var playing = {};                 // { itemId: 1 } -> video sudah diketuk, iframe dimuat
 var openSet = null;               // { setId: true/false } bab ad set yang terbuka
@@ -1029,9 +1057,13 @@ function commentsOf(itemId){
     return r.itemId === itemId && (r.kind === "comment" || r.kind === "revise");
   }).map(function(r){
     var e = last[r.id];
-    return { id: r.id, at: r.at, picName: r.picName, slide: r.slide || 0,
-      text: e ? String(e.text || "") : String(r.text || ""), edited: !!e };
-  }).filter(function(c){ return c.text.trim() !== ""; }).sort(byAt);
+    var pics = (picsBy[r.id] || []).filter(function(x){ return typeof x === "string" && PIC_RE.test(x); }).slice(0, MAX_PICS);
+    var npics = Math.min(MAX_PICS, Number(r.npics) || 0);
+    var text = e ? String(e.text || "") : String(r.text || "");
+    // Dihapus pengirimnya = versi ubahan kosong. Tanpa ubahan, tanggapan berisi screenshot/link saja tetap tampil.
+    return { id: r.id, at: r.at, picName: r.picName, slide: r.slide || 0, text: text, edited: !!e,
+      pics: pics, npics: npics, picsLoaded: Object.prototype.hasOwnProperty.call(picsBy, r.id), link: safeUrl(r.link || ""), gone: e ? !text.trim() : (!text.trim() && !npics && !safeUrl(r.link || "")) };
+  }).filter(function(c){ return !c.gone; }).sort(byAt);
 }
 // Komentar yang masuk SEBELUM revisi terakhir dianggap sudah ditindaklanjuti.
 function isResolved(item, c){ return !!(item.revisedAt && String(c.at || "") < String(item.revisedAt)); }
@@ -1086,14 +1118,15 @@ function closeZoom(){
   document.removeEventListener("keydown", zoomKey);
 }
 function zoomKey(e){ if(e.key === "Escape") closeZoom(); }
-function openZoom(docId, start){
-  var imgs = images[docId] || []; if(!imgs.length) return;
+function openZoom(docId, start){ openZoomList(images[docId] || [], start); }
+function openZoomList(imgs, start){
+  if(!imgs || !imgs.length) return;
   closeZoom();
   var z = document.createElement("div"); z.id = "zm"; z.className = "zm";
   z.setAttribute("role", "dialog"); z.setAttribute("aria-label", "Screenshot iklan");
   z.innerHTML = '<div class="zt"><span class="zc">' + (imgs.length > 1 ? (start + 1) + ' / ' + imgs.length : '') + '</span>' +
     '<button class="zx" aria-label="Tutup">×</button></div><div class="zs">' +
-    imgs.map(function(src){ return '<div><img src="' + src + '" alt=""></div>'; }).join("") + '</div>';
+    imgs.map(function(src){ return '<div><img src="' + esc(src) + '" alt=""></div>'; }).join("") + '</div>';
   document.body.appendChild(z);
   document.documentElement.style.overflow = "hidden";
   var sc = z.querySelector(".zs"), cnt = z.querySelector(".zc");
@@ -1111,7 +1144,8 @@ function openZoom(docId, start){
 /* ---------- cadangan PDF ---------- */
 // Tombol "Unduh PDF" di halaman klien, dan dari tracker lewat &pdf=1 (dialog cetak terbuka sendiri).
 var imgBusy = 0, respReady = false, pdfAsked = false;
-function pdfBtn(){ return '<div class="pdfbar"><button class="pdfb" data-a="pdf">⬇ Unduh PDF</button></div>' +
+// Tombol unduh hanya di tracker (keputusan Okky 24 Nov); halaman klien hanya membawa cap untuk PDF.
+function pdfBtn(){ return '' +
   '<div class="pstamp">Salinan PDF ' + esc(doc.client || "") + ' · dicetak ' + esc(fmtDate(new Date().toISOString())) + '</div>'; }
 function printNow(tries){
   tries = tries || 0;
@@ -1198,12 +1232,22 @@ function send(itemId, kind, text, extra, okMsg){
   };
   if(extra && extra.slide) payload.slide = Number(extra.slide);
   if(extra && extra.ref)   payload.ref = String(extra.ref).slice(0,40);
+  var pics = (extra && extra.pics || []).filter(function(x){ return PIC_RE.test(x); }).slice(0, MAX_PICS);
+  if(pics.length) payload.npics = pics.length;
+  if(extra && extra.link) payload.link = String(extra.link).slice(0, 500);
 
+  // Screenshot disimpan di dokumen terpisah (pics/<id yang sama>), supaya daftar tanggapan
+  // yang dimuat tracker tetap ringan. Ditulis setelah tanggapannya ada (rules mengeceknya).
   ref.set(payload).then(function(){
+    if(!pics.length) return;
+    return db.collection(PREVIEW_COLLECTION).doc(token).collection("pics").doc(ref.id).set({ pics: pics, at: payload.at })
+      .then(function(){ picsBy[ref.id] = pics; })
+      .catch(function(e){ toast("Tanggapan terkirim, tapi screenshot gagal terkirim. Coba kirim screenshot-nya lagi."); if(window.console) console.error(e); });
+  }).then(function(){
     if(kind === "comment"){
       mine[ref.id] = 1;
       lsSet("ubahpv_mine_" + token, Object.keys(mine).join(","));
-      delete drafts[itemId]; delete slideOn[itemId];
+      delete drafts[itemId]; delete slideOn[itemId]; delete pend[itemId]; delete plink[itemId];
     }
     if(kind === "edit") editing = null;
     if(kind === "approve"){ delete reopened[itemId]; delete saying[itemId]; }
@@ -1300,10 +1344,17 @@ function act(a, id, n, el){
     render(true);
   }
   else if(a === "send"){
-    var text = (drafts[id] || "").trim();
-    if(!text) return;
-    needName(function(){ send(id, "comment", text, { slide: slideOn[id] || 0 }, "Tanggapan terkirim ke tim."); });
+    var text = (drafts[id] || "").trim(), pics = (pend[id] || []).slice(), lk = safeUrl(plink[id] || "");
+    if((plink[id] || "").trim() && !lk){ toast("Link harus diawali https://"); return; }
+    if(!text && !pics.length && !lk) return;
+    needName(function(){ send(id, "comment", text, { slide: slideOn[id] || 0, pics: pics, link: lk }, "Tanggapan terkirim ke tim."); });
   }
+  else if(a === "unpic"){ (pend[id] || []).splice(Number(n) || 0, 1); dropSayCache(id); render(true); }
+  else if(a === "addlink"){ plink[id] = ""; dropSayCache(id); render(true);
+    setTimeout(function(){ var x = document.querySelector('textarea[data-i="plink"][data-id="' + id + '"]'); if(x) try{ x.focus(); }catch(e){} }, 40); }
+  else if(a === "unlink"){ delete plink[id]; dropSayCache(id); render(true); }
+  else if(a === "zoomc"){ var zl = (picsBy[id] || []).filter(function(x){ return PIC_RE.test(x); }).slice(0, MAX_PICS);
+    if(zl.length) openZoomList(zl, Number(n) || 0); }
   else if(a === "approve"){
     // Dua ketukan. Di HP tombol ini gampang kesenggol waktu menggulir, dan satu salah
     // pencet berarti konten lolos tanpa dibaca.
@@ -1605,9 +1656,25 @@ function textHtml(it){
   return h;
 }
 
+// Link di tulisan otomatis bisa diklik (hanya http/https).
+function linkify(t){
+  return esc(t).replace(/https?:\/\/[^\s<]+/g, function(u){
+    var clean = u.replace(/[.,!?)]+$/, ""), tail = u.slice(clean.length);
+    var href = safeUrl(clean.replace(/&amp;/g, "&"));
+    return href ? '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + clean + '</a>' + tail : u;
+  });
+}
+function cPicsHtml(c){
+  var h = "";
+  if(c.pics && c.pics.length) h += '<span class="cpics">' + c.pics.map(function(src, i){
+    return '<img src="' + esc(src) + '" alt="Screenshot ' + (i + 1) + '" data-a="zoomc" data-id="' + esc(c.id) + '" data-n="' + i + '">'; }).join("") + '</span>';
+  else if(c.npics && !c.picsLoaded) h += '<span class="cpics-w">' + c.npics + ' screenshot sedang dimuat…</span>';
+  if(c.link) h += '<a class="clink" href="' + esc(c.link) + '" target="_blank" rel="noopener">🔗 ' + esc(c.link.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60)) + '</a>';
+  return h;
+}
 function commentHtml(c, withSlide, it){
   return (withSlide && c.slide ? '<span class="sl">' + esc(partName(it, c.slide)) + '</span>' : '') +
-    '<b>' + esc(c.picName || "") + '</b><span style="white-space:pre-line">' + esc(c.text) + '</span>' +
+    '<b>' + esc(c.picName || "") + '</b><span style="white-space:pre-line">' + linkify(c.text) + '</span>' + cPicsHtml(c) +
     '<time>' + esc(fmtWhen(c.at)) + (c.edited ? ", diubah" : "") + '</time>';
 }
 
@@ -1640,14 +1707,26 @@ function commentsHtml(it, locked){
   }
   return h;
 }
+function sayLive(itemId){
+  return !!((drafts[itemId] || "").trim() || (pend[itemId] || []).length || safeUrl(plink[itemId] || ""));
+}
 function sayHtml(it, placeholder, chips){
-  var id = esc(it.id), draft = drafts[it.id] || "";
+  var id = esc(it.id), draft = drafts[it.id] || "", pics = pend[it.id] || [], hasLink = plink[it.id] != null;
+  var att = '<div class="att">' + pics.map(function(src, i){
+      return '<span class="ap"><img src="' + esc(src) + '" alt=""><button data-a="unpic" data-id="' + id + '" data-n="' + i + '" aria-label="Hapus screenshot">×</button></span>'; }).join("") +
+    (picBusy[it.id] ? '<span class="apb">Memproses…</span>' : '') + '</div>' +
+    (hasLink ? '<div class="alink"><textarea rows="1" data-i="plink" data-id="' + id + '" placeholder="Tempel link referensi, mis. https://www.instagram.com/p/…">' + esc(plink[it.id] || "") + '</textarea>' +
+      '<button data-a="unlink" data-id="' + id + '" aria-label="Hapus link">×</button></div>' +
+      ((plink[it.id] || "").trim() && !safeUrl(plink[it.id]) ? '<div class="aerr">Link harus diawali https://</div>' : '') : '') +
+    '<div class="abtn">' + (pics.length < MAX_PICS ? '<label class="ab">📷 Screenshot (' + pics.length + '/' + MAX_PICS + ')' +
+      '<input type="file" accept="image/*" multiple data-i="pic" data-id="' + id + '"></label>' : '<span class="ab off">📷 Maks ' + MAX_PICS + ' screenshot</span>') +
+    (hasLink ? '' : '<button class="ab" data-a="addlink" data-id="' + id + '">🔗 Link referensi</button>') + '</div>';
   return '<div class="say">' + (chips || '') +
     '<div class="box"><textarea id="ta_' + id + '" rows="2" maxlength="' + MAX_TEXT + '" data-i="draft" data-id="' + id +
-    '" placeholder="' + esc(placeholder) + '">' + esc(draft) + '</textarea>' +
+    '" placeholder="' + esc(placeholder) + '">' + esc(draft) + '</textarea>' + att +
     '<div class="row"><span class="cnt" id="cn_' + id + '">' + (draft.length > 400 ? draft.length + "/" + MAX_TEXT : "") + '</span>' +
-    '<span class="btns"><button class="send' + (draft.trim() ? " live" : "") + '" id="sd_' + id + '" data-a="send" data-id="' + id + '"' +
-    (sending[it.id] ? " disabled" : "") + '>Kirim</button></span></div></div></div>';
+    '<span class="btns"><button class="send' + (sayLive(it.id) ? " live" : "") + '" id="sd_' + id + '" data-a="send" data-id="' + id + '"' +
+    (sending[it.id] || picBusy[it.id] ? " disabled" : "") + '>Kirim</button></span></div></div></div>';
 }
 
 function talkHtml(it){
@@ -1877,7 +1956,7 @@ function vtile(it, poster, label, fresh){
     // file baru masih diproses), kembali ke gambar cover dari task.
     var thumb = "https://drive.google.com/thumbnail?id=" + vid + "&sz=w720";
     return '<button class="vt" data-a="play" data-id="' + esc(it.id) + '" aria-label="Putar video">' +
-      '<img src="' + thumb + '" alt="" data-fb="' + (poster || "") + '" onerror="this.onerror=null;if(this.dataset.fb){this.src=this.dataset.fb}else{this.remove()}">' + lbl +
+      '<img src="' + thumb + '" alt="" data-fb="' + esc(poster || "") + '" data-fbimg="1">' + lbl +
       '<span class="pl"><b><i></i></b><em>Ketuk untuk memutar</em></span></button>';
   }
   return '<div class="vt">' + (poster ? '<img src="' + poster + '" alt="">' : '') + lbl + '</div>';
@@ -2556,7 +2635,7 @@ function rpCover(){
     '<div class="rp-lg">' + (logo ? '<img class="cl" src="' + logo + '" alt="">' : '<b>' + esc(doc.client || "") + '</b>') + '<img class="ub" src="' + UBAH_LOGO + '" alt="UBAHdigital"></div>' +
     '<div class="rp-ct"><div class="rp-kk">ADS PERFORMANCE REPORT</div><h1>' + esc(doc.period || "") + '</h1>' +
     '<div class="rp-cm">' + (r.campCount || 0) + ' campaign · ' + (r.adCount || 0) + ' iklan · ' + esc(ADS_OBJ_LBL[r.obj] || "") + '</div>' +
-    '<button class="rp-pdf" onclick="window.print()">Unduh PDF</button></div>' +
+    '</div>' +   // tombol PDF hanya di tracker (24 Nov)
     (pics ? '<div class="rp-pics">' + pics + '</div>' : '') + '</section>';
 }
 var ADS_OBJ_LBL = { leads: "Leads WhatsApp", sales: "Penjualan website", traffic: "Traffic", awareness: "Awareness" };
@@ -2812,12 +2891,18 @@ function onInput(e){
   if(kind === "draft"){
     var id = t.getAttribute("data-id");
     drafts[id] = t.value;
-    var b = document.getElementById("sd_" + id); if(b) b.className = "send" + (t.value.trim() ? " live" : "");
+    var b = document.getElementById("sd_" + id); if(b) b.className = "send" + (sayLive(id) ? " live" : "");
     var c = document.getElementById("cn_" + id); if(c) c.textContent = t.value.length > 400 ? t.value.length + "/" + MAX_TEXT : "";
     // html di cache sengaja dibuang: isi kotak sudah berubah di layar, jadi perbandingan
     // dengan html lama tidak lagi sah untuk bagian ini.
     delete cache["x_" + id];
     if(/^set_/.test(id)) delete cache["gf_" + id.slice(4)];
+  } else if(kind === "plink"){
+    var pid = t.getAttribute("data-id");
+    plink[pid] = t.value;
+    var pb = document.getElementById("sd_" + pid); if(pb) pb.className = "send" + (sayLive(pid) ? " live" : "");
+    delete cache["x_" + pid];
+    if(/^set_/.test(pid)) delete cache["gf_" + pid.slice(4)];
   } else if(kind === "sg"){
     var sid = t.getAttribute("data-id"), sk = t.getAttribute("data-k");
     if(!sugg[sid]) sugg[sid] = { open: true };
@@ -2829,6 +2914,49 @@ function onInput(e){
     delete cache["x_" + editing.itemId];
     if(/^set_/.test(editing.itemId)) delete cache["gf_" + editing.itemId.slice(4)];
   }
+}
+// Screenshot dari galeri: diperkecil di HP sebelum dikirim (sisi terpanjang 1400px, JPEG),
+// supaya satu tanggapan tetap ringan (maks ±200 KB per gambar).
+function shrinkPic(file){
+  return new Promise(function(res, rej){
+    var fr = new FileReader();
+    fr.onerror = function(){ rej(new Error("read")); };
+    fr.onload = function(){
+      var im = new Image();
+      im.onerror = function(){ rej(new Error("img")); };
+      im.onload = function(){
+        var scale = Math.min(1, 1400 / Math.max(im.width, im.height)), out = "";
+        for(var tries = 0; tries < 6; tries++){
+          var w = Math.max(1, Math.round(im.width * scale)), h = Math.max(1, Math.round(im.height * scale));
+          var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+          var cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, w, h); cx.drawImage(im, 0, 0, w, h);
+          out = cv.toDataURL("image/jpeg", tries < 3 ? 0.75 - tries * 0.1 : 0.55);
+          if(out.length <= PIC_MAX_CHARS) return res(out);
+          if(tries >= 2) scale *= 0.8;
+        }
+        out.length <= PIC_MAX_CHARS ? res(out) : rej(new Error("besar"));
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function dropSayCache(id){ delete cache["x_" + id]; if(/^set_/.test(id)) delete cache["gf_" + id.slice(4)]; }
+function onChange(e){
+  var t = e.target;
+  if(!t || t.getAttribute("data-i") !== "pic") return;
+  var id = t.getAttribute("data-id"), files = Array.prototype.slice.call(t.files || []);
+  t.value = "";
+  var room = MAX_PICS - (pend[id] || []).length;
+  if(!files.length || room <= 0) return;
+  if(files.length > room) toast("Maksimal " + MAX_PICS + " screenshot per tanggapan. Yang diambil " + room + " pertama.");
+  picBusy[id] = 1; dropSayCache(id); render(true);
+  var chain = Promise.resolve();
+  files.slice(0, room).forEach(function(f){
+    chain = chain.then(function(){ return shrinkPic(f).then(function(d){ (pend[id] = pend[id] || []).push(d); })
+      .catch(function(){ toast("Ada gambar yang tidak bisa dibaca. Coba screenshot lain."); }); });
+  });
+  chain.then(function(){ delete picBusy[id]; dropSayCache(id); render(true); });
 }
 function onFocusOut(){
   setTimeout(function(){ if(pendingRender && !typing()) render(); }, 200);
@@ -2854,6 +2982,15 @@ function onFocusOut(){
 
   document.addEventListener("click", onClick);
   document.addEventListener("input", onInput);
+  document.addEventListener("change", onChange);
+  // Gambar video Drive gagal dimuat -> pakai cover dari task (pengganti onerror inline, supaya CSP bisa ketat).
+  document.addEventListener("error", function(e){
+    var t = e.target;
+    if(!t || t.tagName !== "IMG" || !t.getAttribute("data-fbimg") || t.__fb) return;
+    t.__fb = 1;
+    var fb = t.getAttribute("data-fb");
+    if(fb && PIC_FB_RE.test(fb)) t.src = fb; else t.remove();
+  }, true);
   document.addEventListener("focusout", onFocusOut);
   // Penanda slide carousel iklan mengikuti geseran. Peristiwa scroll tidak merambat,
   // jadi didengarkan di tahap capture.
@@ -2888,6 +3025,12 @@ function onFocusOut(){
           respReady = true;
           render();
         }, function(){ /* tanggapan gagal dimuat — halaman tetap bisa dibaca */ });
+      db.collection(PREVIEW_COLLECTION).doc(token).collection("pics")
+        .onSnapshot(function(ps){
+          var m = {};
+          ps.docs.forEach(function(d){ var o = d.data(); m[d.id] = (Array.isArray(o.pics) ? o.pics : []).filter(function(x){ return typeof x === "string" && PIC_RE.test(x); }); });
+          picsBy = m; cache = {}; render();
+        }, function(){});
     }
   }, function(){
     fatal("Tidak bisa membuka preview", "Periksa koneksi lalu buka ulang. Kalau tetap gagal, hubungi tim UBAH.");
