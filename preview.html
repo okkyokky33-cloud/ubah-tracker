@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' https://www.gstatic.com 'sha256-OfS5800WxnVR2XKWLAjayLzvF96syytNWGWYogi6U/0='; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' https://www.gstatic.com 'sha256-Yq3yHeS+Wxh8nlPGkpz/8CujGaA9gjmCudMLkt+CmbM='; object-src 'none'; base-uri 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <!-- Kartu link di WhatsApp/Telegram (19 Nov). Gambar sama untuk semua klien: WhatsApp
@@ -1542,7 +1542,7 @@ function headHtml(items){
       var lab = s === "approved" ? "Setuju" : s === "new" ? "Versi baru" : s === "sent" ? "Ditanggapi" : "Belum";
       h += '<button class="' + cls + '" data-a="goto" data-id="' + esc(it.id) + '" aria-label="' +
         esc(nameOf(it, i)) + ", " + lab + '"><span class="im">' +
-        (img ? '<img src="' + img + '" alt="">' : '<i>' + (i + 1) + '</i>') +
+        (img ? '<img src="' + esc(img) + '" alt="">' : '<i>' + (i + 1) + '</i>') +
         '</span><span class="st">' + lab + '</span></button>';
     });
     h += '</div></div>';
@@ -1589,7 +1589,7 @@ function videoTile(it, poster){
       '/preview" allow="autoplay" allowfullscreen></iframe></div>';
   }
   return '<button class="t" data-a="play" data-id="' + esc(it.id) + '" aria-label="Putar video">' +
-    (poster ? '<img src="' + poster + '" alt="">' : '') + '<span class="play"><i></i></span></button>';
+    (poster ? '<img src="' + esc(poster) + '" alt="">' : '') + '<span class="play"><i></i></span></button>';
 }
 
 function mediaHtml(it){
@@ -1600,7 +1600,7 @@ function mediaHtml(it){
   if(vid){
     // Video: cover di kiri (kalau ada gambarnya), video di kanan.
     if(imgs.length){
-      h += '<div class="duo"><div><div class="t cov"><img src="' + imgs[0] + '" alt=""></div><div class="lb">Cover</div></div>' +
+      h += '<div class="duo"><div><div class="t cov"><img src="' + esc(imgs[0]) + '" alt=""></div><div class="lb">Cover</div></div>' +
            '<div>' + videoTile(it, imgs[1] || imgs[0]) + '<div class="lb">' +
            (playing[it.id] ? "Video" : 'Video<span class="noprint">, ketuk untuk memutar</span>') + '</div></div></div>';
     } else {
@@ -1613,22 +1613,22 @@ function mediaHtml(it){
       var n = i + 1;
       h += '<button class="gs' + (sel === n ? " on" : "") + '"' +
         (isOpen() ? ' data-a="slide" data-id="' + id + '" data-n="' + n + '"' : ' disabled') +
-        '><span class="im"><img src="' + src + '" alt="Slide ' + n + '" loading="lazy"></span>' +
+        '><span class="im"><img src="' + esc(src) + '" alt="Slide ' + n + '" loading="lazy"></span>' +
         '<span class="lb">Slide ' + n + '</span></button>';
     });
     h += '</div>';
   } else if(carousel){
     h += '<div class="swipe">';
     imgs.forEach(function(src, i){
-      h += '<div class="sl"><img src="' + src + '" alt="Slide ' + (i + 1) + '" loading="lazy">' +
+      h += '<div class="sl"><img src="' + esc(src) + '" alt="Slide ' + (i + 1) + '" loading="lazy">' +
         '<span class="lb">Slide ' + (i + 1) + ' dari ' + imgs.length + '</span></div>';
     });
     h += '</div><div class="swipehint">Geser untuk melihat slide berikutnya</div>';
   } else if(imgs.length){
-    h += '<div class="one"><img src="' + imgs[0] + '" alt="" loading="lazy"></div>';
+    h += '<div class="one"><img src="' + esc(imgs[0]) + '" alt="" loading="lazy"></div>';
     if(imgs.length > 1){
       h += '<div class="grid" style="margin-top:7px">';
-      imgs.slice(1).forEach(function(src){ h += '<div class="gs"><span class="im"><img src="' + src + '" alt="" loading="lazy"></span></div>'; });
+      imgs.slice(1).forEach(function(src){ h += '<div class="gs"><span class="im"><img src="' + esc(src) + '" alt="" loading="lazy"></span></div>'; });
       h += '</div>';
     }
   } else {
@@ -1832,7 +1832,7 @@ function adsCoverHtml(logos, title, until, light){
   var run = a && z ? "Tayang " + (a[1] === z[1] ? a[2] : fmtShort(c.startDate)) + "–" + fmtShort(c.endDate) : "";
   var akun = String(doc.client || "").trim();
   var card = photo ? '<div class="adc" aria-hidden="true"><div class="h"><i></i><div><b>' + esc(akun) + '</b>Bersponsor</div></div>' +
-    '<img src="' + photo + '" alt="">' +
+    '<img src="' + esc(photo) + '" alt="">' +
     ((first.headline || first.cta) ? '<div class="f"><em>' + esc(first.headline || "") + '</em>' + (first.cta ? '<span>' + esc(first.cta) + '</span>' : '') + '</div>' : '') +
     '</div>' : '';
   return '<div class="cov ad' + (light ? " dl" : "") + (photo ? "" : " nocard") + '">' + logos + card +
@@ -1850,8 +1850,8 @@ function swapCoverHtml(logos, title, until, light, dk){
     if(o && nw){ oldImg = o; newImg = nw; return true; }
     return false;
   });
-  var pair = oldImg ? '<div class="vs" aria-hidden="true"><div class="vo"><img src="' + oldImg + '" alt=""><span>LAMA</span></div>' +
-    '<div class="vsa">→</div><div class="vn"><img src="' + newImg + '" alt=""><span>BARU</span></div></div>' : '';
+  var pair = oldImg ? '<div class="vs" aria-hidden="true"><div class="vo"><img src="' + esc(oldImg) + '" alt=""><span>LAMA</span></div>' +
+    '<div class="vsa">→</div><div class="vn"><img src="' + esc(newImg) + '" alt=""><span>BARU</span></div></div>' : '';
   return '<div class="cov sw"><div class="band' + (light ? " light" : "") + (dk ? " dk" : "") + '">' + logos + '</div>' + pair +
     '<div class="tx"><div class="k">Ganti iklan</div>' + title +
     '<div class="per"><b>' + changed + ' diganti</b> · ' + kept + ' tetap jalan' + (until ? ' · ' + esc(until) : '') + '</div></div></div>';
@@ -1959,7 +1959,7 @@ function vtile(it, poster, label, fresh){
       '<img src="' + thumb + '" alt="" data-fb="' + esc(poster || "") + '" data-fbimg="1">' + lbl +
       '<span class="pl"><b><i></i></b><em>Ketuk untuk memutar</em></span></button>';
   }
-  return '<div class="vt">' + (poster ? '<img src="' + poster + '" alt="">' : '') + lbl + '</div>';
+  return '<div class="vt">' + (poster ? '<img src="' + esc(poster) + '" alt="">' : '') + lbl + '</div>';
 }
 function folderList(it){
   var out = [], seen = {};
@@ -1981,11 +1981,11 @@ function mediaC(it){
   } else if(imgs.length > 1){
     h += '<div class="pst">';
     imgs.forEach(function(src, i){
-      h += '<div class="ps"><img src="' + src + '" alt="Slide ' + (i + 1) + '" loading="lazy"><span class="c">' + (i + 1) + '/' + imgs.length + '</span></div>';
+      h += '<div class="ps"><img src="' + esc(src) + '" alt="Slide ' + (i + 1) + '" loading="lazy"><span class="c">' + (i + 1) + '/' + imgs.length + '</span></div>';
     });
     h += '</div>';
   } else if(imgs.length){
-    h += '<div class="pone"><img src="' + imgs[0] + '" alt="" loading="lazy"></div>';
+    h += '<div class="pone"><img src="' + esc(imgs[0]) + '" alt="" loading="lazy"></div>';
   }
   if(!h){
     h += '<div class="nomedia">Gambar pratinjaunya belum tersedia di halaman ini.' +
@@ -2066,7 +2066,7 @@ function talkC(it){
 function doneC(it){
   var ap = approvalOf(it); if(!ap) return "";
   var img = (images[it.imagesDoc] || [])[0], id = esc(it.id);
-  return '<div class="drow">' + (img ? '<img src="' + img + '" alt="">' : '<i></i>') +
+  return '<div class="drow">' + (img ? '<img src="' + esc(img) + '" alt="">' : '<i></i>') +
     '<div class="x"><b>' + esc(nameOf(it, indexOf(it))) + '</b><span>✓ Disetujui ' + esc(ap.picName || "") +
     ' · ' + esc(fmtShort(ap.at)) + '</span></div><span class="ac">' +
     '<button data-a="unfold" data-id="' + id + '">Lihat</button>' +
@@ -2080,7 +2080,7 @@ function showJump(){
   items.forEach(function(it, i){
     var s = stateOf(it), img = (images[it.imagesDoc] || [])[0];
     var lab = s === "approved" ? "Disetujui" : s === "new" ? "Diperbarui" : s === "sent" ? "Ada komentar" : "Menunggu";
-    h += '<button data-a="jumpto" data-id="' + esc(it.id) + '">' + (img ? '<img src="' + img + '" alt="">' : '<i>' + (i + 1) + '</i>') +
+    h += '<button data-a="jumpto" data-id="' + esc(it.id) + '">' + (img ? '<img src="' + esc(img) + '" alt="">' : '<i>' + (i + 1) + '</i>') +
       '<span><b>' + esc(nameOf(it, i)) + '</b><em class="' + s + '">' + lab + '</em></span></button>';
   });
   h += '</div><button class="no" data-a="nameclose">Tutup</button></div></div>';
@@ -2215,7 +2215,7 @@ function swapGroups(){
 }
 function oldThumb(r){
   var img = (images[r.imagesDoc] || [])[0];
-  if(img) return '<img class="sw-th" src="' + img + '" alt="">';
+  if(img) return '<img class="sw-th" src="' + esc(img) + '" alt="">';
   // Iklan lama tanpa gambar: tampilkan formatnya supaya kotaknya tidak kosong.
   var f = /video/i.test(r.format || "") ? "Video" : /katalog/i.test(r.format || "") ? "Katalog" : "Iklan";
   return '<i class="sw-th ph">' + esc(f) + '</i>';
@@ -2406,7 +2406,7 @@ function adCardShell(it, single){
 function adVideo(it, poster){
   var vid = safeId(it.videoId);
   if(playing[it.id]) return '<iframe src="https://drive.google.com/file/d/' + vid + '/preview" allow="autoplay" allowfullscreen></iframe>';
-  return (poster ? '<img src="' + poster + '" alt="">' : '<span class="mempty" style="color:#bbb">Video</span>') +
+  return (poster ? '<img src="' + esc(poster) + '" alt="">' : '<span class="mempty" style="color:#bbb">Video</span>') +
     '<button class="playbtn" data-a="play" data-id="' + esc(it.id) + '" aria-label="Putar video"><span class="play"><i></i></span></button>';
 }
 
@@ -2428,7 +2428,7 @@ function adMediaHtml(it){
 
   if(story){
     h += '<div class="mstory">' + (poster && !playing[it.id] ? '<div class="bg" style="background-image:url(' + poster + ')"></div>' : '') +
-      (vid ? adVideo(it, poster) : poster ? '<img src="' + poster + '" alt="">' : '<span class="mempty" style="color:#bbb">Gambar materi belum diunggah</span>') +
+      (vid ? adVideo(it, poster) : poster ? '<img src="' + esc(poster) + '" alt="">' : '<span class="mempty" style="color:#bbb">Gambar materi belum diunggah</span>') +
       '<div class="top"><span class="av">' + esc(akun.slice(0,1).toUpperCase() || "?") + '</span><span><b>' + esc(akun) + '</b><i>Bersponsor</i></span></div>' +
       (playing[it.id] ? '' : '<div class="bot">' + (text ? '<p>' + esc(text) + '</p>' : '') + (it.cta ? '<span>' + esc(it.cta) + '</span>' : '') + '</div>') +
       '</div><div class="storynote">Kalau tidak ada materi khusus Story, Meta menampilkan materi feed seperti ini.</div>';
@@ -2446,8 +2446,8 @@ function adMediaHtml(it){
     var multi = !vid && imgs.length > 1;
     h += '<div class="mfeed' + fr + '">' + (vid ? adVideo(it, poster)
       : multi ? '<span class="mcount">1/' + imgs.length + '</span><div class="mcar">' + imgs.map(function(src, i){
-          return '<img src="' + src + '" alt="Slide ' + (i + 1) + '" loading="lazy">'; }).join("") + '</div>'
-      : poster ? '<img src="' + poster + '" alt="" loading="lazy">'
+          return '<img src="' + esc(src) + '" alt="Slide ' + (i + 1) + '" loading="lazy">'; }).join("") + '</div>'
+      : poster ? '<img src="' + esc(poster) + '" alt="" loading="lazy">'
       : '<span class="mempty">' + (boost ? "Post yang sudah tayang. Buka lewat tautan di bawah." : "Gambar materi belum diunggah.") + '</span>') + '</div>';
     if(multi){
       h += '<div class="mdots">' + imgs.map(function(_, i){ return '<i' + (i === 0 ? ' style="background:var(--c)"' : '') + '></i>'; }).join("") + '</div>';
@@ -2513,9 +2513,9 @@ function proofTile(it){
   if(imgs === undefined) return '<div class="pft"><span class="pfe">Memuat gambar…</span></div>';
   if(!imgs.length) return '<div class="pft"><span class="pfe">Screenshot menyusul</span></div>';
   var d = esc(it.imagesDoc), z = '<span class="pfz" aria-hidden="true">⤢</span>';
-  if(imgs.length === 1) return '<div class="pft"><img src="' + imgs[0] + '" alt="Perbesar screenshot" loading="lazy" data-a="zoom" data-id="' + d + '" data-n="0">' + z + '</div>';
+  if(imgs.length === 1) return '<div class="pft"><img src="' + esc(imgs[0]) + '" alt="Perbesar screenshot" loading="lazy" data-a="zoom" data-id="' + d + '" data-n="0">' + z + '</div>';
   return '<div class="pft multi"><div class="pfs">' + imgs.map(function(src, i){
-    return '<img src="' + src + '" alt="Slide ' + (i + 1) + ', perbesar" loading="lazy" data-a="zoom" data-id="' + d + '" data-n="' + i + '">'; }).join("") + '</div>' +
+    return '<img src="' + esc(src) + '" alt="Slide ' + (i + 1) + ', perbesar" loading="lazy" data-a="zoom" data-id="' + d + '" data-n="' + i + '">'; }).join("") + '</div>' +
     '<span class="pfn">' + imgs.length + ' slide · geser ›</span>' + z + '</div>';
 }
 function proofAdHtml(it){
@@ -2630,7 +2630,7 @@ function rpCover(){
   var b = doc.brand || {}, logo = safeImg(b.logo), r = doc.rpt;
   var col = /^#[0-9A-Fa-f]{6}$/.test(b.color || "") ? b.color : BRAND_FALLBACK;
   var dark = lum(hexRgb(col)) > 0.45;
-  var pics = (r.winners || []).slice(0, 3).map(function(a){ return a.imagesDoc && (images[a.imagesDoc] || [])[0] ? '<img src="' + images[a.imagesDoc][0] + '" alt="">' : ""; }).join("");
+  var pics = (r.winners || []).slice(0, 3).map(function(a){ return a.imagesDoc && (images[a.imagesDoc] || [])[0] ? '<img src="' + esc(images[a.imagesDoc][0]) + '" alt="">' : ""; }).join("");
   return '<section class="rp-s rp-cov' + (dark ? " dk" : "") + '" style="background:linear-gradient(125deg,' + col + ' 0%,' + col + 'cc 55%,' + col + '66 100%)">' +
     '<div class="rp-lg">' + (logo ? '<img class="cl" src="' + logo + '" alt="">' : '<b>' + esc(doc.client || "") + '</b>') + '<img class="ub" src="' + UBAH_LOGO + '" alt="UBAHdigital"></div>' +
     '<div class="rp-ct"><div class="rp-kk">ADS PERFORMANCE REPORT</div><h1>' + esc(doc.period || "") + '</h1>' +
