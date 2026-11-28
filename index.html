@@ -807,7 +807,7 @@ function PantauAdsView({lockClient:e,isAdmin:t,myRole:a,myName:n}){
     [i,r]=useState(null),[s,c]=useState(!0),[o,m]=useState(""),
     [d,u]=useState({}),[p,g]=useState(null),
     [b,k]=useState(()=>{try{return localStorage.getItem("pantauAdsClient")||""}catch(e){return""}}),
-    [h,v]=useState(null),[E,R]=useState({url:"",key:""}),[f,y]=useState(!1),[S,N]=useState(!1),[H,D]=useState(!1);
+    [h,v]=useState(null),[F,G]=useState(""),[E,R]=useState({url:"",key:""}),[f,y]=useState(!1),[S,N]=useState(!1),[H,D]=useState(!1);
   const w=e||b,C=e=>{k(e),D(!1),g(null);try{localStorage.setItem("pantauAdsClient",e)}catch(e){}};
   const x=useCallback(async()=>{
     c(!0),m("");
@@ -850,12 +850,13 @@ function PantauAdsView({lockClient:e,isAdmin:t,myRole:a,myName:n}){
   const h1=e=>React.createElement("div",{className:"section-title",style:{margin:"0 0 8px"}},e);
   const th=e=>React.createElement("th",{key:e,style:{textAlign:"left",padding:"4px 6px",borderBottom:"1px solid var(--line)",whiteSpace:"nowrap"}},e);
   const td=(e,t)=>React.createElement("td",{key:t,style:{padding:"4px 6px",borderBottom:"1px solid var(--line)",verticalAlign:"top"}},e);
-  const pill=(e,t,a)=>React.createElement("div",{key:e,style:{flex:1,background:"var(--card, #fff)",border:"1px solid var(--line)",borderRadius:12,padding:"8px 10px",textAlign:"center"}},React.createElement("div",{style:{fontSize:18,fontWeight:800,color:a}},t),React.createElement("div",{style:{fontSize:11,color:"var(--ink-3)"}},e));
+  const pill=(e,t,a,k)=>React.createElement("button",{key:e,onClick:()=>G(F===k?"":k),"aria-pressed":F===k,style:{flex:1,font:"inherit",cursor:"pointer",background:F===k?"var(--bg, #F4F3F8)":"var(--card, #fff)",border:F===k?"2px solid "+a:"1px solid var(--line)",borderRadius:12,padding:F===k?"7px 9px":"8px 10px",textAlign:"center"}},React.createElement("div",{style:{fontSize:18,fontWeight:800,color:a}},t),React.createElement("div",{style:{fontSize:11,color:"var(--ink-3)"}},e));
 
   function overview(){
     return React.createElement(React.Fragment,null,
-      React.createElement("div",{style:{display:"flex",gap:8,marginBottom:12}},pill("Perlu tindakan",counts.merah,PA_DOT.merah),pill("Perlu dicek",counts.kuning,"#B88600"),pill("Aman",counts.hijau,PA_DOT.hijau)),
-      latest.map(e=>{const t=paUnit(e.jenis_hasil),a=paTrend(e.biaya_per_hasil_7h,e.biaya_per_hasil_lalu),n=aksiOf(e);
+      React.createElement("div",{style:{display:"flex",gap:8,marginBottom:12}},pill("Perlu tindakan",counts.merah,PA_DOT.merah,"merah"),pill("Perlu dicek",counts.kuning,"#B88600","kuning"),pill("Aman",counts.hijau,PA_DOT.hijau,"hijau")),
+      F?React.createElement("div",{style:{fontSize:12,color:"var(--ink-3)",margin:"-4px 2px 8px"}},"Menampilkan "+PA_STATUS[F].label.toLowerCase()+" · ",React.createElement("a",{href:"#",onClick:e=>{e.preventDefault(),G("")}},"tampilkan semua")):null,
+      (F?latest.filter(e=>e._final===F):latest).map(e=>{const t=paUnit(e.jenis_hasil),a=paTrend(e.biaya_per_hasil_7h,e.biaya_per_hasil_lalu),n=aksiOf(e);
         return React.createElement("div",{key:e.klien,onClick:()=>C(e.klien),className:"card",style:{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8,cursor:"pointer",padding:"12px"}},
           React.createElement("span",{style:{width:12,height:12,borderRadius:"50%",flex:"none",marginTop:4,background:PA_DOT[e._final]}}),
           React.createElement("div",{style:{minWidth:0,flex:1}},
@@ -935,8 +936,9 @@ function PantauAdsView({lockClient:e,isAdmin:t,myRole:a,myName:n}){
       React.createElement("div",{className:"field"},React.createElement("label",null,"Kunci rahasia (dari tab _kunci di Sheet)"),React.createElement("input",{type:"password",value:E.key,onChange:e=>R({...E,key:e.target.value}),autoComplete:"off"})),
       React.createElement("button",{className:"btn btn-gold btn-sm",disabled:f,onClick:saveConfig},f?"Menyimpan...":"Simpan & muat ulang")),
     o?React.createElement("div",{className:"card"},o," ",React.createElement("button",{className:"btn btn-outline btn-sm",onClick:x},"Muat ulang"),t&&!h?React.createElement("button",{className:"btn btn-outline btn-sm",style:{marginLeft:6},onClick:()=>v("cfg")},"⚙ Pengaturan"):null):React.createElement(React.Fragment,null,
-      !e&&latest.length>0&&React.createElement("div",{style:{display:"flex",gap:6,overflowX:"auto",marginBottom:10,paddingBottom:2}},
-        [["","Semua klien"]].concat(latest.map(e=>[e.klien,e.klien])).map(([e,t])=>React.createElement("button",{key:e||"_all",className:"btn btn-sm "+((sel?sel.klien:"")===e?"btn-gold":"btn-outline"),style:{flex:"none"},onClick:()=>C(e)},t))),
+      !e&&latest.length>0&&React.createElement("select",{value:sel?sel.klien:"",onChange:e=>C(e.target.value),"aria-label":"Pilih klien",style:{width:"100%",font:"inherit",fontSize:15,fontWeight:600,padding:"10px 12px",borderRadius:12,border:"1px solid var(--line)",background:"var(--card, #fff)",color:"var(--ink)",marginBottom:10}},
+        React.createElement("option",{value:""},"Semua klien ("+latest.length+")"),
+        latest.map(e=>React.createElement("option",{key:e.klien,value:e.klien},(PA_STATUS[e._final]||PA_STATUS.error).dot+" "+e.klien))),
       React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--ink-3)",marginBottom:10}},
         React.createElement("span",{style:{flex:1}},lastUpd?"Diperbarui "+lastUpd:""),
         React.createElement("button",{className:"btn btn-outline btn-sm","aria-label":"Muat ulang",title:"Muat ulang",onClick:x},"⟳"),
