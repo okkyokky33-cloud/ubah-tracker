@@ -769,6 +769,9 @@ const PA_DOT={merah:"#E5484D",kuning:"#F5B300",hijau:"#30A46C",kosong:"#C9C9D1",
 const paUnit=e=>{const t=String(e||"").toLowerCase();return/purchase|pembelian|beli/.test(t)?"beli":/percakapan|wa|messag|pesan/.test(t)?"WA":/lead|prospek/.test(t)?"lead":"hasil"};
 const paShort=e=>{const t=paNum(e);if(!t)return"Rp0";const a=Math.abs(t);return a>=1e6?"Rp"+(t/1e6).toFixed(a>=1e7?0:1).replace(".",",").replace(/,0$/,"")+"jt":a>=1e3?"Rp"+Math.round(t/1e3)+"rb":"Rp"+Math.round(t)};
 const paK=e=>{const t=paNum(e);return t>=1e6?(t/1e6).toFixed(1).replace(".",",").replace(/,0$/,"")+"jt":t>=1e4?(t/1e3).toFixed(1).replace(".",",").replace(/,0$/,"")+"rb":Math.round(t).toLocaleString("id-ID")};
+const paPct=e=>paNum(e).toFixed(1).replace(".",",").replace(/,0$/,"");
+const PA_HOOK={kuat:{t:"Hook kuat",bg:"#E3F5EA",fg:"#1E7A45"},sedang:{t:"Hook sedang",bg:"#EEF0F4",fg:"#4b5563"},lemah:{t:"Hook lemah",bg:"#FDE8EC",fg:"#B4123A"}};
+function PaHook({e:e}){const t=String(e.hook_label||"").toLowerCase(),a=paNum(e.hook_pct);if("panjang"===t)return React.createElement("div",{style:{fontSize:11,color:"var(--ink-3)",marginTop:3}},"🎬 Video panjang (>60 dtk), hook tidak terukur");if(!a)return null;const n=PA_HOOK[t];return React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",fontSize:11,color:"var(--ink-3)",marginTop:3}},n?React.createElement("span",{style:{background:n.bg,color:n.fg,fontWeight:700,borderRadius:999,padding:"1px 7px"}},"🎬 "+n.t):"🎬",React.createElement("span",null,paPct(a)+"% lanjut nonton"+(paNum(e.tonton_habis_pct)?" · "+paPct(e.tonton_habis_pct)+"% sampai habis":"")+(n?"":" (data masih sedikit)")))}
 const paTrend=(e,t)=>{const a=paNum(e),n=paNum(t);if(!a||!n)return null;const l=Math.round((a-n)/n*100);return{pct:l,txt:(l>0?"▲ ":l<0?"▼ ":"")+Math.abs(l)+"%",col:l>5?"#E5484D":l<-5?"#30A46C":"#888"}};
 const paCleanName=e=>String(e||"").replace(/\s*\(+[^()]*\d{4}\)\s*$/,"").trim()||String(e||"");
 function PaLabel({l:e}){const t=PA_LABEL[e]||PA_LABEL.pantau;return React.createElement("span",{style:{background:t.bg,color:t.fg,fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 8px",whiteSpace:"nowrap",flex:"none"}},t.t)}
@@ -791,7 +794,8 @@ function PaAdSet({s:e,unit:t}){
       React.createElement("div",{style:{minWidth:0,flex:1}},
         React.createElement("div",{style:{fontSize:13,fontWeight:600}},paCleanName(e.iklan)),
         React.createElement("div",{style:{fontSize:11.5,color:"var(--ink-3)",marginTop:2}},String(e.alasan||"")),
-        React.createElement("div",{style:{fontSize:11,color:"var(--ink-3)",marginTop:2}},paShort(e.spend_7h)+" · "+paNum(e.hasil_7h)+" "+t+(paNum(e.reach_7h)?" · reach "+paK(e.reach_7h):"")+(paNum(e.ctr_7h)?" · CTR "+paDec(e.ctr_7h)+"%":"")+(paNum(e.hari_jalan)?" · "+paNum(e.hari_jalan)+" hari":""))),
+        React.createElement("div",{style:{fontSize:11,color:"var(--ink-3)",marginTop:2}},paShort(e.spend_7h)+" · "+paNum(e.hasil_7h)+" "+t+(paNum(e.reach_7h)?" · reach "+paK(e.reach_7h):"")+(paNum(e.ctr_7h)?" · CTR "+paDec(e.ctr_7h)+"%":"")+(paNum(e.hari_jalan)?" · "+paNum(e.hari_jalan)+" hari":"")),
+        React.createElement(PaHook,{e:e})),
       React.createElement(PaLabel,{l:e.label}))),
     s>0||a?React.createElement("button",{onClick:()=>n(!a),style:{display:"block",width:"100%",textAlign:"left",background:"none",border:0,borderTop:"1px solid var(--line)",fontSize:12,color:"var(--ink-3)",padding:"8px 12px",cursor:"pointer"}},a?"Sembunyikan":"+"+s+" iklan lain (👀 pantau)"):null)
 }
@@ -870,6 +874,7 @@ function PantauAdsView({lockClient:e,isAdmin:t,myRole:a,myName:n}){
     e.aksi&&m.push(String(e.aksi));
     const ak=String(e.aksi||"").toLowerCase(),said=e=>{const t=paCleanName(e.iklan).toLowerCase().split(/\s+/).slice(0,2).join(" ");return!!t&&ak.includes(t)};
     c.filter(e=>!said(e)).forEach(e=>m.push("Ganti materi "+paCleanName(e.iklan)+" ("+paShort(e.spend_7h)+", "+paNum(e.hasil_7h)+" "+a+")"));
+    i.filter(e=>"lemah"===String(e.hook_label||"").toLowerCase()&&paNum(e.spend_7h)>=5e4&&"ganti"!==e.label&&!said(e)).forEach(e=>m.push("Rombak 3 detik pertama "+paCleanName(e.iklan)+" (hook "+paPct(e.hook_pct)+"%)"));
     o.length&&m.push("Cek setelah klik: "+o.map(e=>paCleanName(e.iklan)).join(", ")+". Jangan ganti materi dulu");
     !m.length&&aksiOf(e)&&m.push(aksiOf(e));
     const roas=paNum(e.roas_7h),mr=t&&paNum(t.minRoas),mc=t&&paNum(t.maxCpr),cpr=paNum(e.biaya_per_hasil_7h);
@@ -893,7 +898,7 @@ function PantauAdsView({lockClient:e,isAdmin:t,myRole:a,myName:n}){
           r.map(e=>React.createElement("div",{key:e},
             React.createElement("div",{style:{fontSize:12,fontWeight:800,color:"var(--ink-3)",textTransform:"uppercase",letterSpacing:".05em",margin:"14px 2px 6px"}},paCleanName(e)),
             Object.values(s[e]).map((e,t)=>React.createElement(PaAdSet,{key:t,s:e,unit:a})))),
-          React.createElement("div",{style:{fontSize:11,color:"var(--ink-3)",textAlign:"center",margin:"6px 0 12px"}},"Iklan 👀 pantau dengan spend kecil tidak dicatat. Angka ad set = jumlah iklan yang tercatat."))
+          React.createElement("div",{style:{fontSize:11,color:"var(--ink-3)",textAlign:"center",margin:"6px 0 12px"}},"🎬 Hook = persen tayangan yang lanjut menonton sampai 25% video (untuk video pendek ±3 detik pertama), dibandingkan dengan video lain di akun ini. Iklan 👀 pantau dengan spend kecil tidak dicatat."))
         :React.createElement("div",{className:"card",style:{fontSize:13,marginBottom:12}},"Rincian per iklan belum ada. Muncul setelah laporan pagi berikutnya.")),
       l||t?React.createElement("div",{className:"card",style:{marginBottom:12}},
         p?React.createElement(React.Fragment,null,h1("Target "+e.klien),
@@ -915,8 +920,8 @@ function PantauAdsView({lockClient:e,isAdmin:t,myRole:a,myName:n}){
         (()=>{const t=weekly.filter(t=>t.klien===e.klien),a=t.map(e=>String(e.minggu_mulai)).sort().pop();if(!a)return React.createElement("div",{className:"card",style:{fontSize:13}},"Rekap iklan mingguan muncul setiap Senin pagi.");const n=t.filter(e=>String(e.minggu_mulai)===a).sort((e,t)=>paNum(t.spend)-paNum(e.spend));
           return React.createElement("div",{className:"card",style:{overflowX:"auto"}},h1("Rekap per iklan · minggu mulai "+a),
             React.createElement("table",{style:{width:"100%",fontSize:12,borderCollapse:"collapse"}},
-              React.createElement("thead",null,React.createElement("tr",null,["Iklan","Spend","Hasil","Biaya/hasil","Reach","CPM","Freq","CTR","Catatan"].map(th))),
-              React.createElement("tbody",null,n.map((e,t)=>React.createElement("tr",{key:t},[React.createElement("div",{key:"n"},React.createElement("div",{style:{fontWeight:600}},paCleanName(e.iklan)),React.createElement("div",{style:{color:"var(--ink-3)"}},paCleanName(e.campaign)+(e.ad_set?" · "+paCleanName(e.ad_set):""))),paRp(e.spend),paNum(e.hasil),paRp(e.biaya_per_hasil),paNum(e.reach)?paK(e.reach):"-",paNum(e.cpm)?paShort(e.cpm):"-",paDec(e.frequency),paNum(e.ctr)?paDec(e.ctr)+"%":"-",String(e.catatan||"")].map(td))))))})()),
+              React.createElement("thead",null,React.createElement("tr",null,["Iklan","Spend","Hasil","Biaya/hasil","Reach","CPM","Hook","Freq","CTR","Catatan"].map(th))),
+              React.createElement("tbody",null,n.map((e,t)=>React.createElement("tr",{key:t},[React.createElement("div",{key:"n"},React.createElement("div",{style:{fontWeight:600}},paCleanName(e.iklan)),React.createElement("div",{style:{color:"var(--ink-3)"}},paCleanName(e.campaign)+(e.ad_set?" · "+paCleanName(e.ad_set):""))),paRp(e.spend),paNum(e.hasil),paRp(e.biaya_per_hasil),paNum(e.reach)?paK(e.reach):"-",paNum(e.cpm)?paShort(e.cpm):"-",paNum(e.hook_pct)?paPct(e.hook_pct)+"%":"-",paDec(e.frequency),paNum(e.ctr)?paDec(e.ctr)+"%":"-",String(e.catatan||"")].map(td))))))})()),
       React.createElement("div",{style:{fontSize:11,color:"var(--ink-3)",textAlign:"center",marginTop:10}},"Data "+(e.tanggal||"-")+" · diperbarui "+(e.diperbarui||"-")))
   }
 
